@@ -38,7 +38,7 @@ class LoggerCog(commands.Cog, name='logger'):
             total_count = total_count + 1
             if member.bot is True:
                 bot_count = bot_count + 1
-            elif member.status == discord.Status.online:
+            elif member.status != discord.Status.offline:
                 online_count = online_count + 1
                 data.append([date, current_time, member.id])
         self.csv_file_write(data)
