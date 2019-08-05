@@ -11,6 +11,7 @@ class LoggerCog(commands.Cog, name='logger'):
         self.log_count = 0
         self.log.start()
 
+    # TODO: Make this function useful or remove it.
     @staticmethod
     def csv_file_read():
         with open('member_data.csv', newline='') as member_data:

@@ -37,6 +37,7 @@ async def on_ready():
     # Loads the cogs available on start up.
     load_extension()
 
+# TODO: Need to add commands to load/unload cogs and to update the config file.
 
 client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.
