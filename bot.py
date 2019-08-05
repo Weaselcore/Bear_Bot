@@ -4,20 +4,27 @@ import json
 import discord
 from discord.ext import commands
 
-with open("token.txt", 'r') as file:
-    token = json.load(file)
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
 bot = commands.Bot(command_prefix='#', help_command=None)
+
+with open("token.json", 'r') as token_file:
+    token = json.load(token_file)
+
 # A list to store the created cogs to load sequentially on startup.
-core_extensions = ['cogs.logger', 'cogs.lobby']
+extensions = []
+with open('config.json', 'r') as config_file:
+    config_dictionary = json.load(config_file)
+    for key, value in config_dictionary.items():
+        if value is True:
+            extensions.append(key)
+            print(f'{key} has been added to the extension list.')
 
 
 # The function to load the cogs on event: startup.
 def load_extension():
-    for cog in core_extensions:
+    for cog in extensions:
         bot.load_extension(cog)
-        print(f'* Extension {cog} has been loaded.')
-    print('\n')
+        print(f'* Extension "{cog}" has been loaded.')
 
 
 # First thing the bot runs.
