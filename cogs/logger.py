@@ -64,3 +64,7 @@ class LoggerCog(commands.Cog, name='logger'):
 
 def setup(bot):
     bot.add_cog(LoggerCog(bot))
+
+
+def teardown(bot):
+    bot.remove_cog(LoggerCog(bot))

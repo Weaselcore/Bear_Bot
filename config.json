@@ -1,4 +1,1 @@
-{
-  "cogs.lobby": false,
-  "cogs.logger": true
-}
+{"cogs.logger": false, "cogs.lobby": false}

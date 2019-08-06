@@ -331,3 +331,7 @@ class LobbyCog(commands.Cog, name='lobby'):
 
 def setup(bot):
     bot.add_cog(LobbyCog(bot))
+
+
+def teardown(bot):
+    bot.remove_cog(LobbyCog(bot))
