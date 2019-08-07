@@ -87,7 +87,15 @@ async def load(ctx, cog):
     else:
         await ctx.channel.send('This extension is currently running or does not exist.')
 
-# TODO: Create a reload function for cogs.
+
+@bot.command()
+async def reload(ctx, cog):
+    cog = "cogs." + cog
+    try:
+        bot.reload_extension(cog)
+    except commands.ExtensionNotLoaded:
+        await ctx.channel.send("Extension is currently not running.")
+        print("* Extension reload failed. Reason: Extension not running.")
 
 client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.
