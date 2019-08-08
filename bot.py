@@ -28,6 +28,17 @@ async def on_ready():
 async def ping(ctx):
     await ctx.channel.send(f'PONG: {time.ctime()} ')
 
+"""
+@bot.command()
+async def bamboozle(ctx):
+    voice_channels = []
+    for channel in bot.get_all_channels():
+        if channel.type is discord.ChannelType.voice:
+            voice_channels.append(channel)
+    await ctx.channel.send(voice_channels)
+    current_channel = ctx.channel
+    for member in current_channel."""
+
 
 client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.

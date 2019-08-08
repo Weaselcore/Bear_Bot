@@ -4,7 +4,7 @@
     "cogs.lobby": false
   },
   "logger": {
-    "interval": 15,
+    "interval": 30,
     "last_log": null
   }
 }
