@@ -1,0 +1,10 @@
+{
+  "extension": {
+    "cogs.logger": false,
+    "cogs.lobby": false
+  },
+  "logger": {
+    "interval": 15,
+    "last_log": null
+  }
+}
