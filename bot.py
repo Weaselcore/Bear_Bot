@@ -3,6 +3,7 @@
 import json
 import discord
 import time
+import random
 from discord.ext import commands
 
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
@@ -28,17 +29,24 @@ async def on_ready():
 async def ping(ctx):
     await ctx.channel.send(f'PONG: {time.ctime()} ')
 
-"""
+
 @bot.command()
 async def bamboozle(ctx):
-    voice_channels = []
-    for channel in bot.get_all_channels():
-        if channel.type is discord.ChannelType.voice:
-            voice_channels.append(channel)
-    await ctx.channel.send(voice_channels)
-    current_channel = ctx.channel
-    for member in current_channel."""
-
+    voice_channel_list, member_list, current_channel = [], [], ctx.author.voice.channel
+    if ctx.author.guild_permissions.administrator is True:
+        for channel in ctx.guild.channels:
+            if channel.type == discord.ChannelType.voice and channel is not current_channel:
+                voice_channel_list.append(channel)
+        number_of_channels = len(voice_channel_list)
+        for member in current_channel.members:
+            member_list.append(member)
+        for member_to_move in member_list:
+            random_number = random.randrange(0, number_of_channels)
+            await member_to_move.move_to(voice_channel_list[random_number])
+        for member_to_move in member_list:
+            await member_to_move.move_to(current_channel)
+    else:
+        print(f'{ctx.author.name} tried to use this command.')
 
 client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.

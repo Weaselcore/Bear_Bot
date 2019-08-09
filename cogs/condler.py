@@ -18,7 +18,7 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
             # This portion will initialise the extension config.
             for file in cog_folder.iterdir():
                 file = str(file)
-                last_slash = file.rfind("/")
+                last_slash = file.rfind("\\")
                 file = file[last_slash+1:]
                 if file not in self.ignored:
                     dot = file.rfind(".")
