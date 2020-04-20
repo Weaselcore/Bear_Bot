@@ -10,9 +10,10 @@ from discord.ext import commands
 bot = commands.Bot(command_prefix='#', help_command=None)
 
 # Bot reads an external file for the token.
+
 with open('token.json', 'r') as file_to_read:
     token = json.load(file_to_read)
-file_to_read.close()
+
 
 # First thing the bot runs.
 @bot.event
