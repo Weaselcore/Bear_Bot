@@ -4,7 +4,9 @@ import json
 import discord
 import time
 import random
+
 from discord.ext import commands
+
 
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
 bot = commands.Bot(command_prefix='#', help_command=None)

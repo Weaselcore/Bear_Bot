@@ -1,12 +1,1 @@
-{
-  "extension": {
-    "cogs.lobby": false,
-    "cogs.logger": false,
-    "cogs.points": false,
-    "cogs.poker": true
-  },
-  "logger": {
-    "interval": 15,
-    "last_log": null
-  }
-}
+{"extension": {"cogs.lobby": false, "cogs.logger": true, "cogs.points": false}, "logger": {"interval": 15, "last_log": null}}
