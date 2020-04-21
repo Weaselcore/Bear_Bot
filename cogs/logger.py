@@ -12,10 +12,11 @@ import urllib
 from discord.ext import commands, tasks
 
 # Default interval is 15 minutes.
+# Initialised outside of class as a constant.
 with open('config.json', 'r') as file_to_read:
     config_dict = json.load(file_to_read)
-    interval = config_dict["logger"]["interval"]
-    print(f"* Interval: {interval}")
+    INTERVAL = config_dict["logger"]["interval"]
+    print(f"* Interval loaded from config: {INTERVAL} minutes.")
 
 
 class LoggerCog(commands.Cog, name='logger'):
@@ -49,7 +50,7 @@ class LoggerCog(commands.Cog, name='logger'):
         with open(file, 'w+') as file_to_write:
             json.dump(payload, file_to_write, indent=4)
 
-    @tasks.loop(minutes=interval, reconnect=True)
+    @tasks.loop(minutes=INTERVAL, reconnect=True)
     async def log(self):
         to_log = await self.check_last_update()
         if to_log:
@@ -68,7 +69,7 @@ class LoggerCog(commands.Cog, name='logger'):
             print("* Proceeding to log. \n")
             return True
         else:
-            print(f"* It's been less than {interval} minutes since last log. \n")
+            print(f"* It's been less than {INTERVAL} minutes since last log. \n")
             return False
 
     # Create a generator function to give a member asynchronously.
