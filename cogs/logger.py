@@ -11,6 +11,12 @@ import motor.motor_asyncio
 import urllib
 from discord.ext import commands, tasks
 
+# Default interval is 15 minutes.
+with open('config.json', 'r') as file_to_read:
+    config_dict = json.load(file_to_read)
+    interval = config_dict["logger"]["interval"]
+    print(f"* Interval: {interval}")
+
 
 class LoggerCog(commands.Cog, name='logger'):
     def __init__(self, bot):
@@ -20,34 +26,38 @@ class LoggerCog(commands.Cog, name='logger'):
         self.now = None
         self.date = None
         self.time = None
+        self.last_log = None
 
-        with open('mongodb_token.json', 'r') as file_to_read:
-            token = json.load(file_to_read)
+        config = self.json_load('config.json')
+        self.last_log = config["logger"]["last_log"]
+
+        token = self.json_load('mongodb_token.json')
         client = motor.motor_asyncio.AsyncIOMotorClient(
             f"mongodb+srv://{token['user']}:{urllib.parse.quote(token['password'])}@log-database-6fo4z.mongodb.net"
             f"/test?retryWrites=true&w=majority")
-
         self.db = client.discord_member_log
+
         self.log.start()
 
     @staticmethod
-    def csv_file_read():
-        with open('member_data.csv', newline='') as member_data:
-            data_reader = csv.reader(member_data, delimiter=' ', quotechar="'")
-            for row in data_reader:
-                print(', '.join(row))
-        member_data.close()
+    def json_load(file):
+        with open(file, 'r') as file_handler:
+            data = json.load(file_handler)
+        return data
 
     @staticmethod
-    def csv_file_write(data_dump):
-        with open('member_data.csv', 'a', newline="") as member_data:
-            data_writer = csv.writer(member_data, delimiter=' ', quotechar="'", quoting=csv.QUOTE_MINIMAL)
-            data_writer.writerows(data_dump)
-        member_data.close()
+    def json_dump(file, payload):
+        with open(file, 'w+') as file_to_write:
+            json.dump(payload, file_to_write, indent=4)
 
-    @tasks.loop(minutes=30.0, reconnect=True)
+    @tasks.loop(minutes=interval, reconnect=True)
     async def log(self):
-        await self.send_to_database()
+        result = await self.send_to_database()
+        if result:
+            config = self.json_load('config.json')
+            config["logger"]["last_log"] = self.last_log
+            self.json_dump("config.json", config)
+            print("* Writing last log in configs.")
 
     # Create a generator function to give a member asynchronously.
     async def get_member(self):
@@ -67,7 +77,6 @@ class LoggerCog(commands.Cog, name='logger'):
         generator = self.get_member()
         async for member in generator:
             if member.status != discord.Status.offline and member.bot is False:
-                print(member.name)
                 member_dict = {"id": member.id,
                                "name": f'{member.name}#{member.discriminator}',
                                "nickname": member.nick,
@@ -77,28 +86,22 @@ class LoggerCog(commands.Cog, name='logger'):
         self.document_to_send['length'] = len(self.document_to_send[self.time])
         self.document_to_send['datetime'] = self.now
         result = await collection.insert_one(self.document_to_send)
+        print(f"A document with a dict length of {len(self.document_to_send[self.time])} has been send to server.")
 
         if not result.acknowledged:
             print("Insertion of document failed.")
+            return False
+        else:
+            self.last_log = self.now.__str__()
+            return True
 
     @log.before_loop
     async def before_log(self):
         print('* Waiting... Before collecting data.\n')
-        path = pathlib.Path('member_data.csv')
-        if path.exists() is False:
-            new_file = open("member_data.csv", 'w')
-            new_file.close()
-            print("WARNING: Data collection log not found, generating new one.")
-        else:
-            print("Previous data collection found, new data will append to this file.\n")
         await self.bot.wait_until_ready()
 
     def cog_unload(self):
         self.log.cancel()
-
-    @commands.command()
-    async def last_log(self, ctx):
-        
 
 
 def setup(bot):

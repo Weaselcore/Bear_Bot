@@ -48,14 +48,12 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
     def json_load(file):
         with open(file, 'r') as file_to_read:
             data = json.load(file_to_read)
-        file_to_read.close()
         return data
 
     @staticmethod
     def json_dump(file, payload):
         with open(file, 'w+') as file_to_write:
-            json.dump(payload, file_to_write)
-        file_to_write.close()
+            json.dump(payload, file_to_write, indent=4)
 
     @commands.command()
     async def unload(self, ctx, cog):
