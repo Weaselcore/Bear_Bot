@@ -26,7 +26,6 @@ class LoggerCog(commands.Cog, name='logger'):
         self.now = None
         self.date = None
         self.time = None
-        self.last_log = None
 
         config = self.json_load('config.json')
         self.last_log = config["logger"]["last_log"]
@@ -52,12 +51,25 @@ class LoggerCog(commands.Cog, name='logger'):
 
     @tasks.loop(minutes=interval, reconnect=True)
     async def log(self):
-        result = await self.send_to_database()
-        if result:
-            config = self.json_load('config.json')
-            config["logger"]["last_log"] = self.last_log
-            self.json_dump("config.json", config)
-            print("* Writing last log in configs.")
+        to_log = await self.check_last_update()
+        if to_log:
+            result = await self.send_to_database()
+            if result:
+                config = self.json_load('config.json')
+                config["logger"]["last_log"] = self.last_log
+                self.json_dump("config.json", config)
+                print("* Writing last log in configs.")
+
+    async def check_last_update(self):
+        present_time_obj = datetime.datetime.now()
+        last_log_time_obj = datetime.datetime.fromisoformat(self.last_log)
+        time_delta = present_time_obj - last_log_time_obj
+        if 900 < time_delta.total_seconds():
+            print("* Proceeding to log. \n")
+            return True
+        else:
+            print(f"* It's been less than {interval} minutes since last log. \n")
+            return False
 
     # Create a generator function to give a member asynchronously.
     async def get_member(self):
@@ -65,7 +77,7 @@ class LoggerCog(commands.Cog, name='logger'):
             yield member
 
     async def send_to_database(self):
-        self.now = datetime.datetime.utcnow()
+        self.now = datetime.datetime.now().isoformat()
         self.date = datetime.date.today().strftime("%d/%m/%Y")
         self.time = datetime.datetime.now().strftime("%H:%M:%S")
         collection = None
