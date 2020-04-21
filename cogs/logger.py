@@ -16,16 +16,20 @@ class LoggerCog(commands.Cog, name='logger'):
     def __init__(self, bot):
         self.bot = bot
         self.log_count = 0
+        self.document_to_send = {}
+        self.now = None
+        self.date = None
+        self.time = None
 
         with open('mongodb_token.json', 'r') as file_to_read:
             token = json.load(file_to_read)
         client = motor.motor_asyncio.AsyncIOMotorClient(
-            f"mongodb+srv://{token['user']}:{urllib.parse.quote(token['password'])}@log-database-6fo4z.mongodb.net/test?retryWrites=true&w=majority")
-        self.db = client.discord_member_log
+            f"mongodb+srv://{token['user']}:{urllib.parse.quote(token['password'])}@log-database-6fo4z.mongodb.net"
+            f"/test?retryWrites=true&w=majority")
 
+        self.db = client.discord_member_log
         self.log.start()
 
-    # TODO: Create a function that can read the log and display it in a suitable format.
     @staticmethod
     def csv_file_read():
         with open('member_data.csv', newline='') as member_data:
@@ -45,46 +49,37 @@ class LoggerCog(commands.Cog, name='logger'):
     async def log(self):
         await self.send_to_database()
 
+    # Create a generator function to give a member asynchronously.
     async def get_member(self):
         for member in self.bot.guilds[0].members:
             yield member
 
     async def send_to_database(self):
-        now = datetime.datetime.utcnow()
+        self.now = datetime.datetime.utcnow()
+        self.date = datetime.date.today().strftime("%d/%m/%Y")
+        self.time = datetime.datetime.now().strftime("%H:%M:%S")
+        collection = None
+        self.document_to_send[self.time] = {}
+
+        if self.db.list_collection_names(filter={"name": self.now}):
+            collection = self.db[self.date]
+
         generator = self.get_member()
         async for member in generator:
-            print(member.name)
             if member.status != discord.Status.offline and member.bot is False:
-                self.db.logs.insert_one({"date": str(now),
-                                               "id": member.id,
-                                               "name": f'{member.name}#{member.discriminator}',
-                                               "nickname": member.nick,
-                                               "status": member.status.name})
+                print(member.name)
+                member_dict = {"id": member.id,
+                               "name": f'{member.name}#{member.discriminator}',
+                               "nickname": member.nick,
+                               "status": member.status.name}
+                self.document_to_send[self.time][member.name + '#' + member.discriminator] = member_dict
 
-    async def do_log(self):
-        online_count, total_count, bot_count = 0, 0, 0
-        self.log_count = self.log_count + 1
-        print(f'Log: {self.log_count}')
-        log_list, data, now, guild = [], [], datetime.datetime.utcnow(), self.bot.get_guild(299536709778014210)
-        date, current_time = now.strftime('%d/%m/%y'), now.strftime('%H:%M')
-        for member in self.bot.get_all_members():
-            total_count = total_count + 1
-            if member.bot is True:
-                bot_count = bot_count + 1
-            elif member.status != discord.Status.offline:
-                online_count = online_count + 1
-                data.append([date, current_time, member.id])
-                result = await self.db.logs.insert_one({"date": str(now),
-                                                        "id": member.id,
-                                                        "name": f'{member.name}#{member.discriminator}',
-                                                        "nickname": member.nick,
-                                                        "status": member.status.name})
-                print(result)
-        self.csv_file_write(data)
+        self.document_to_send['length'] = len(self.document_to_send[self.time])
+        self.document_to_send['datetime'] = self.now
+        result = await collection.insert_one(self.document_to_send)
 
-        print(f'{current_time} - {date}:')
-        print(
-            f'* Data written, {online_count}/{total_count} online out of total members, with {bot_count} bot excluded.\n')
+        if not result.acknowledged:
+            print("Insertion of document failed.")
 
     @log.before_loop
     async def before_log(self):
@@ -100,6 +95,10 @@ class LoggerCog(commands.Cog, name='logger'):
 
     def cog_unload(self):
         self.log.cancel()
+
+    @commands.command()
+    async def last_log(self, ctx):
+        
 
 
 def setup(bot):
