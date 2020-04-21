@@ -4,7 +4,6 @@ import datetime
 import json
 
 import discord
-import pathlib
 # An asynchronous way of using MongoDB.
 import motor.motor_asyncio
 # needed to parse passwords with @ symbols.
@@ -13,6 +12,7 @@ from discord.ext import commands, tasks
 
 # Default interval is 15 minutes.
 # Initialised outside of class as a constant.
+# TODO make an external library for read/write functions.
 with open('config.json', 'r') as file_to_read:
     config_dict = json.load(file_to_read)
     INTERVAL = config_dict["logger"]["interval"]
@@ -24,9 +24,7 @@ class LoggerCog(commands.Cog, name='logger'):
         self.bot = bot
         self.log_count = 0
         self.document_to_send = {}
-        self.now = None
-        self.date = None
-        self.time = None
+        self.now, self.date, self.time = None, None, None
 
         config = self.json_load('config.json')
         self.last_log = config["logger"]["last_log"]
@@ -50,6 +48,7 @@ class LoggerCog(commands.Cog, name='logger'):
         with open(file, 'w+') as file_to_write:
             json.dump(payload, file_to_write, indent=4)
 
+    # TODO Dynamic interval function.
     @tasks.loop(minutes=INTERVAL, reconnect=True)
     async def log(self):
         to_log = await self.check_last_update()
