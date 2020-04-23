@@ -25,7 +25,7 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
                     file = "cogs." + file[:dot]
                     config["extension"][file] = False
             # This portion will initialise the logger config.
-            config["logger"] = {"interval": 15, "last_log": None}
+            config["logger"] = {"interval": 15, "last_log": None, "last_check": None, "next_log": None}
             # This line will write the config dictionary to file.
             self.json_dump('config.json', config)
         else:
