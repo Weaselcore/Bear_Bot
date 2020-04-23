@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import json
 
 import discord
 # An asynchronous way of using MongoDB.
@@ -9,14 +8,11 @@ import motor.motor_asyncio
 import urllib
 from discord.ext import commands, tasks
 from ConfigUtil import *
-import sched
 
 # Default interval is 15 minutes.
 # Initialised outside of class as a constant.
-with open('config.json', 'r') as file_to_read:
-    config_dict = json.load(file_to_read)
-    INTERVAL = config_dict["logger"]["interval"]
-    print(f"* Interval loaded from config: {INTERVAL} minutes")
+INTERVAL = get_config_option("logger", "interval")
+print(f"* Interval loaded from config: {INTERVAL} minutes")
 
 
 class LoggerCog(commands.Cog, name='logger'):
@@ -25,7 +21,7 @@ class LoggerCog(commands.Cog, name='logger'):
         self.log_count = 0
         self.document_to_send = {}
         self.now, self.date, self.time = None, None, None
-        self.last_log, self.last_check, self.next_log = None, None, None
+        self.last_log = None
         self.string_prefix = "[Logger]"
 
         token = json_load('mongodb_token.json')
@@ -63,7 +59,8 @@ class LoggerCog(commands.Cog, name='logger'):
         self.document_to_send['length'] = len(self.document_to_send[self.time])
         self.document_to_send['datetime'] = self.now
         result = await collection.insert_one(self.document_to_send)
-        print(f" {self.string_prefix} A document with a dict length of {len(self.document_to_send[self.time])} has been send to server.")
+        print(f" {self.string_prefix} A document with a dict length of {len(self.document_to_send[self.time])} has "
+              f"been send to server.")
 
         if not result.acknowledged:
             print(" {self.string_prefix} Insertion of document failed.")
