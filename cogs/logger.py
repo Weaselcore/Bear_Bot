@@ -85,11 +85,6 @@ class LoggerCog(commands.Cog, name='logger'):
         await self.bot.wait_until_ready()
         await asyncio.sleep(time_difference+1)
 
-    @log.after_loop
-    async def after_log(self):
-        print(self.log.next_iteration)
-        self.log.start()
-
     @staticmethod
     # TODO create function have more dynamic intervals instead of 15 minutes.
     async def check_time():
