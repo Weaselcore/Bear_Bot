@@ -41,11 +41,8 @@ class LoggerCog(commands.Cog, name='logger'):
         self.now = datetime.datetime.now().isoformat()
         self.date = datetime.date.today().strftime("%d/%m/%Y")
         self.time = datetime.datetime.now().strftime("%H:%M")
-        collection = None
-        self.document_to_send[self.time] = {}
-
-        if self.db.list_collection_names(filter={"name": self.now}):
-            collection = self.db[self.date]
+        self.document_to_send = {self.time: {}}
+        collection = self.db[self.date]
 
         generator = self.get_member_generator()
         async for member in generator:
@@ -59,7 +56,9 @@ class LoggerCog(commands.Cog, name='logger'):
         self.document_to_send['length'] = len(self.document_to_send[self.time])
         self.document_to_send['datetime'] = self.now
         result = await collection.insert_one(self.document_to_send)
-        print(f" {self.string_prefix} A document with a dict length of {len(self.document_to_send[self.time])} has "
+        self.last_log = self.now
+        change_config_option("logger", "last_log", self.last_log)
+        print(f"* {self.string_prefix} A document with a dict length of {len(self.document_to_send[self.time])} has "
               f"been send to server.")
 
         if not result.acknowledged:
@@ -74,6 +73,7 @@ class LoggerCog(commands.Cog, name='logger'):
         print(self.log.next_iteration)
         result = await self.send_to_database()
         if result:
+            # TODO fix logging checks in config file.
             change_config_option("logger", "last_log", self.last_log)
             print(f"* {self.string_prefix} Writing last log in configs.")
 
@@ -83,12 +83,13 @@ class LoggerCog(commands.Cog, name='logger'):
         time_to_log = await self.check_time()
         time_difference = await self.return_difference(time_to_log)
         await self.bot.wait_until_ready()
-        await asyncio.sleep(time_difference+1)
+        await asyncio.sleep(time_difference+1.5)
 
     @staticmethod
     # TODO create function have more dynamic intervals instead of 15 minutes.
     async def check_time():
-        now, next_to_log_time = datetime.datetime.now(), None
+        next_to_log_time = datetime.datetime.now()
+        now = next_to_log_time
         if 0 < now.minute < 15:
             next_to_log_time = now.replace(minute=15, second=0, microsecond=0)
         elif 15 < now.minute < 30:

@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="e4456a7c-8128-4682-b1d8-4201e31801b0" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cogs/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/logger.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -103,22 +104,22 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="612" y="29" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1587426379783" />
-    <state width="1899" height="280" key="GridCell.Tab.0.bottom" timestamp="1587616782679">
+    <state width="1899" height="280" key="GridCell.Tab.0.bottom" timestamp="1587630009903">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="280" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1587616782679" />
-    <state width="1899" height="280" key="GridCell.Tab.0.center" timestamp="1587616782679">
+    <state width="1899" height="280" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1587630009903" />
+    <state width="1899" height="280" key="GridCell.Tab.0.center" timestamp="1587630009902">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="280" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1587616782679" />
-    <state width="1899" height="280" key="GridCell.Tab.0.left" timestamp="1587616782679">
+    <state width="1899" height="280" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1587630009902" />
+    <state width="1899" height="280" key="GridCell.Tab.0.left" timestamp="1587630009902">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="280" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1587616782679" />
-    <state width="1899" height="280" key="GridCell.Tab.0.right" timestamp="1587616782679">
+    <state width="1899" height="280" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1587630009902" />
+    <state width="1899" height="280" key="GridCell.Tab.0.right" timestamp="1587630009903">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="280" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1587616782679" />
+    <state width="1899" height="280" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1587630009903" />
     <state width="1899" height="345" key="GridCell.Tab.1.bottom" timestamp="1587614082780">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -143,5 +144,16 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="636" y="345" key="com.intellij.ide.util.TipDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1587543787865" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cogs/logger.py</url>
+          <line>106</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
