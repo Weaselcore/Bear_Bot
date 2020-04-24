@@ -89,7 +89,7 @@ class LoggerCog(commands.Cog, name='logger'):
     # TODO create function have more dynamic intervals instead of 15 minutes.
     async def check_time():
         next_to_log_time = datetime.datetime.now()
-        now = next_to_log_time
+        now = datetime.datetime.now()
         if 0 < now.minute < 15:
             next_to_log_time = now.replace(minute=15, second=0, microsecond=0)
         elif 15 < now.minute < 30:
