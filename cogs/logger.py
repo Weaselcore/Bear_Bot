@@ -80,24 +80,24 @@ class LoggerCog(commands.Cog, name='logger'):
     @log.before_loop
     async def before_log(self):
         print(f'* {self.string_prefix} Waiting... Before collecting data.\n')
-        time_to_log = await self.check_time()
+        time_to_log = await self.improved_check_time()
         time_difference = await self.return_difference(time_to_log)
         await self.bot.wait_until_ready()
         await asyncio.sleep(time_difference+1.5)
 
     @staticmethod
-    # TODO create function have more dynamic intervals instead of 15 minutes.
-    async def check_time():
+    async def improved_check_time():
         next_to_log_time = datetime.datetime.now()
         now = datetime.datetime.now()
-        if 0 < now.minute < 15:
-            next_to_log_time = now.replace(minute=15, second=0, microsecond=0)
-        elif 15 < now.minute < 30:
-            next_to_log_time = now.replace(minute=30, second=0, microsecond=0)
-        elif 30 < now.minute < 45:
-            next_to_log_time = now.replace(minute=45, second=0, microsecond=0)
-        elif 45 < now.minute < 60:
+        upper_boundary = 60
+        steps = upper_boundary/INTERVAL
+        result = (now.minute//INTERVAL) + 1
+
+        if result == steps:
             next_to_log_time = now.replace(hour=now.hour+1, minute=0, second=0, microsecond=0)
+        elif result < steps:
+            next_to_log_time = now.replace(minute=result * INTERVAL, second=0, microsecond=0)
+
         change_config_option("logger", "next_log", next_to_log_time.isoformat())
         change_config_option("logger", "last_check", now.isoformat())
         return next_to_log_time
