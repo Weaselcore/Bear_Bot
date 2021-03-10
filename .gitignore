@@ -1,5 +1,6 @@
 token.json
 mongodb_token.json
-.idea/
 discord.log
 config.json
+_pycache_
+.idea/workspace.xml

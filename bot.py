@@ -57,8 +57,10 @@ async def bamboozle(ctx):
         for member_to_move in member_list:
             random_number = random.randrange(0, number_of_channels)
             await member_to_move.move_to(voice_channel_list[random_number])
+            print(f"{member_to_move.name} has been moved to {voice_channel_list[random_number].name}")
         for member_to_move in member_list:
             await member_to_move.move_to(current_channel)
+            print(f"{member_to_move.name} has returned to {current_channel.name}.")
     else:
         print(f'{ctx.author.name} tried to use this command.')
 
