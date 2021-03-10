@@ -3,7 +3,7 @@
 """
 The MIT License (MIT)
 
-Copyright (c) 2015-2019 Rapptz
+Copyright (c) 2015-2020 Rapptz
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -57,12 +57,17 @@ class Object(Hashable):
 
     Attributes
     -----------
-    id: :class:`str`
+    id: :class:`int`
         The ID of the object.
     """
 
     def __init__(self, id):
-        self.id = id
+        try:
+            id = int(id)
+        except ValueError:
+            raise TypeError('id parameter must be convertable to int not {0.__class__!r}'.format(id)) from None
+        else:
+            self.id = id
 
     def __repr__(self):
         return '<Object id=%r>' % self.id

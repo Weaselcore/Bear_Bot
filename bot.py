@@ -8,9 +8,12 @@ import logging
 
 from discord.ext import commands
 
+# Added in 1.5 to enable members cache.
+intents = discord.Intents.default()
+intents.members = True
 
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
-bot = commands.Bot(command_prefix='#', help_command=None)
+bot = commands.Bot(command_prefix='#', help_command=None, intents=intents)
 
 # Bot reads an external file for the token.
 
@@ -46,7 +49,7 @@ async def bamboozle(ctx):
     voice_channel_list, member_list, current_channel = [], [], ctx.author.voice.channel
     if ctx.author.guild_permissions.administrator is True:
         for channel in ctx.guild.channels:
-            if channel.type == discord.ChannelType.voice and channel is not current_channel:
+            if channel.type == discord.ChannelType.voice and (channel is not current_channel and channel.name != "Bear's Secret Hidey Hole"):
                 voice_channel_list.append(channel)
         number_of_channels = len(voice_channel_list)
         for member in current_channel.members:
