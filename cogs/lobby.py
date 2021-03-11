@@ -325,8 +325,8 @@ class LobbyCog(commands.Cog, name='lobby'):
         embed = ResponseEmbed(title="Help", description=description)
         await self.manage(channel=channel, embed=embed.create_embed())
 
-    def cog_unload(self):
-        self.lobby_manager.cancel()
+def cog_unload(self):
+    self.lobby_manager.cancel()
 
 
 def setup(bot):
