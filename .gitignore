@@ -2,7 +2,8 @@ token.json
 mongodb_token.json
 discord.log
 config.json
-__pycache__
-.idea/workspace.xml
+*__pycache__
 venv
 database/user_data.db
+*.xml
+database/__pycache__*

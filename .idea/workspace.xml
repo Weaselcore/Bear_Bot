@@ -3,12 +3,15 @@
   <component name="ChangeListManager">
     <list default="true" id="e4456a7c-8128-4682-b1d8-4201e31801b0" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Bot_2019.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Bot_2019.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/BBLibrary/Singleton.py" beforeDir="false" afterPath="$PROJECT_DIR$/BBLibrary/Singleton.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ConfigUtil.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BBLibrary/Singleton.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cogs/logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/logger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/Database_Wrapper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/gambler.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/gambler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cogs/lobby.py" beforeDir="false" afterPath="$PROJECT_DIR$/cogs/lobby.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/DatabaseWrapper.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/DatabaseWrapper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,13 +107,18 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/bot.py</url>
-          <line>78</line>
+          <line>73</line>
           <option name="timeStamp" value="5" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/database/DatabaseWrapper.py</url>
           <line>10</line>
           <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cogs/gambler.py</url>
+          <line>44</line>
+          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
