@@ -9,8 +9,12 @@ import logging
 from discord.ext import commands
 
 # Added in 1.5 to enable members cache.
+from database.DatabaseWrapper import DatabaseWrapper
+
 intents = discord.Intents.default()
 intents.members = True
+
+database = None
 
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
 bot = commands.Bot(command_prefix='#', help_command=None, intents=intents)
@@ -36,12 +40,16 @@ logging.getLogger('discord').addHandler(console)
 # First thing the bot runs.
 @bot.event
 async def on_ready():
+    global database
+    global logger
     name, identity = bot.user.name, bot.user.id
     print(f"Logged in as - Name: {name}; ID: {identity}\n\nReady when you are.")
     # This is to see if you're running the correct version of discord.py.
     print("Using version: ", discord.__version__, "\n")
+
     # Loads the handler for the config and will load the appropriate extensions.
     bot.load_extension("cogs.condler")
+    database = DatabaseWrapper()
 
 
 @bot.command(aliases=["quit", "shutdown"])

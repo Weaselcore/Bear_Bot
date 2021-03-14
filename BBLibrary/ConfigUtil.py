@@ -13,15 +13,15 @@ def json_dump(file, payload):
 
 
 def get_config_option(cog, option_to_get):
-    config_dict = json_load('config.json')
+    config_dict = json_load('../config.json')
     option_to_return = config_dict[cog][option_to_get]
     return option_to_return
 
 
 def change_config_option(cog, option, new_option):
-    config_dict = json_load('config.json')
+    config_dict = json_load('../config.json')
     config_dict[cog][option] = new_option
-    json_dump('config.json', config_dict)
+    json_dump('../config.json', config_dict)
 
 
 
