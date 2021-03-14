@@ -1,4 +1,4 @@
-# UoA Helper Bot by WhackaWeasel
+# Christian Plus Server by WhackaWeasel
 
 import json
 import discord
@@ -23,9 +23,14 @@ with open('token.json', 'r') as file_to_read:
 # Sick of lack of warnings, this initialises logging to file.
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+console.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
+# Allow logs to print to console.
+logging.getLogger('discord').addHandler(console)
 
 
 # First thing the bot runs.
@@ -39,13 +44,25 @@ async def on_ready():
     bot.load_extension("cogs.condler")
 
 
+@bot.command(aliases=["quit", "shutdown"])
+@commands.has_permissions(administrator=True)
+async def close(ctx):
+    logger.info('Close function invoked. Shutting down and logging out gracefully.')
+    await ctx.bot.logout()
+
+
 @bot.command()
 async def ping(ctx):
     await ctx.channel.send(f'PONG: {time.ctime()} ')
 
 
+# Rewrite this function. You're better than this.
+"""
 @bot.command()
 async def bamboozle(ctx):
+
+    # Use first order functions to zip and move members.
+
     voice_channel_list, member_list, current_channel = [], [], ctx.author.voice.channel
     if ctx.author.guild_permissions.administrator is True:
         for channel in ctx.guild.channels:
@@ -63,6 +80,7 @@ async def bamboozle(ctx):
             print(f"{member_to_move.name} has returned to {current_channel.name}.")
     else:
         print(f'{ctx.author.name} tried to use this command.')
+    """
 
 client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.
