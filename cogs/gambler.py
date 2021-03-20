@@ -1,5 +1,7 @@
 import datetime
 import logging
+from random import random
+
 from discord.ext.commands import cooldown
 from discord.ext import commands
 from database.DatabaseWrapper import DatabaseWrapper
@@ -19,14 +21,23 @@ create_member_table = """CREATE TABLE member(
                             last_used timestamp);"""
 
 create_gambler_stat_table = """CREATE TABLE gambler_stat(
-                            _id integer PRIMARY KEY,
-                            member_id REFERENCES member(_id),
+                            _id integer NOT NULL,
                             money_amount integer,
                             last_stolen_id text,
                             last_redeemed timestamp,
                             last_stolen_datetime timestamp,
                             total_gained integer,
-                            total_lost integer);"""
+                            total_lost integer,
+                            FOREIGN KEY (_id) REFERENCES member(_id));"""
+
+
+async def message(ctx, incoming_message):
+    await ctx.message.channel.send(incoming_message)
+
+
+def fifty() -> bool:
+    float_number = random()
+    return True if float_number < 0.5 else False
 
 
 class GamblerCog(commands.Cog, name='gambler'):
@@ -58,24 +69,100 @@ class GamblerCog(commands.Cog, name='gambler'):
     def register_guild(self) -> None:
         list_of_guilds = self.bot.guilds
         for guild in list_of_guilds:
-            self.database.execute(f"""INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values({guild.id}, "{guild.name}", "{str(datetime.datetime.utcnow())}");""")
+            self.database.execute(
+                f"""INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values({guild.id}, "{guild.name}", "{str(datetime.datetime.utcnow())}");""")
 
+    def get_money(self, member) -> int:
+        cursor = self.database.execute(
+            f"SELECT money_amount FROM gambler_stat WHERE _id={member.id}")
+        # fetchall returns a tuple in a list.
+        money_list = cursor.fetchall()
+        money = 0 if len(money_list) == 0 else money_list[0][0]
+        return money
+
+    def update(self, string: str, *args):
+        cursor = self.database.execute(
+            
+        )
+
+    def add_money(self, member, money_amount) -> None:
+        old_amount = self.get_money(member)
+        # Add money_amount to previous amount, add money gained.
+        self.database.execute(
+            f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, total_gained) values({member.id}, {old_amount + money_amount}, {old_amount + money_amount});""")
+
+    def remove_money(self, member, money_amount) -> None:
+        old_amount = self.get_money(member)
+        # Subtract money_amount to previous amount, add money lost.
+        self.database.execute(
+            f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, total_lost) values({member.id}, {old_amount - money_amount}, {money_amount + money_amount});""")
+
+    @commands.command()
+    async def money(self, ctx):
+        if len(ctx.message.mentions) > 0:
+            member = ctx.message.mentions[0]
+            money = self.get_money(member)
+        else:
+            member = ctx.message.author
+            cursor = self.database.execute(
+                f"SELECT money_amount FROM gambler_stat WHERE _id={member.id}")
+            money = cursor.fetchall()[0][0]
+        await message(ctx, f'Member: {member.nick if member.nick is not None else member.name} has ${money}.')
+
+    # TODO check timestamp from db instead using cool down from memory.
     @commands.command()
     async def redeem(self, ctx):
         member = ctx.message.author
         self.database.execute(
             f"""INSERT OR REPLACE INTO member (_id, name, creation_date, last_used) values({member.id}, "{member.name}", null, "{str(datetime.datetime.utcnow())}");""")
-        curr_object = self.database.execute(
-            f"SELECT money_amount FROM gambler_stat WHERE _id={member.id}")
 
-        money_retrieved = curr_object.fetchall()
-
-        money_amount = money_retrieved[0][0] if len(money_retrieved) > 0 else 0
+        money_retrieved = self.get_money(member)
+        money_amount = money_retrieved if money_retrieved is not None else 0
 
         self.database.execute(
             f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, last_redeemed, total_gained) values({member.id}, {money_amount + 100}, "{str(datetime.datetime.utcnow())}", {money_amount + 100});""")
 
-        await ctx.message.channel.send("You have redeemed $100.")
+        await ctx.message.channel.send(f"You have redeemed $100. Balance is now ${money_retrieved + 100}.")
+
+    @commands.command()
+    async def gamble(self, ctx):
+        member = ctx.message.author
+        money = self.get_money(member)
+        if fifty():
+            new_money = money * 2
+            self.add_money(member, new_money)
+            await ctx.message.channel.send(f"You have successfully doubled your money: {new_money}")
+        else:
+            new_money = 0
+            self.add_money(member, new_money)
+            await ctx.message.channel.send(f"You have lost all your money: {new_money}")
+
+    @commands.command()
+    async def steal(self, ctx):
+        member = ctx.message.author
+        mention = ctx.message.mentions
+        if len(mention) == 0:
+            await message(ctx, "You have to mention someone to steal.")
+        elif mention[0] == member:
+            await message(ctx, "You just stole from yourself, idiot.")
+        elif mention[0].id == 450904080211116032:
+            money = self.get_money(member)
+            self.remove_money(member, money)
+            await message(ctx, "You tried to mug Bear Bot?!? Reverse card! You're now naked, penniless and homeless.")
+        else:
+            target_money = self.get_money(mention[0])
+            if target_money is not None and target_money != 0:
+                if fifty():
+                    self.remove_money(mention[0], target_money)
+                    self.add_money(member, target_money)
+                    await message(ctx, f"You have stolen from {mention[0].nick}. New balance: {self.get_money(member)}")
+                else:
+                    money = self.get_money(member)
+                    self.remove_money(member, round(money * 0.25))
+                    await message(ctx,
+                                  f"You have been caught. You've been fined {round(money * 0.25)}. Balance: {round(money * 0.75)} ")
+            else:
+                await message(ctx, "You cannot steal from people who have nothing. How heartless.")
 
 
 def cog_unload(self):
