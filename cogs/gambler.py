@@ -82,7 +82,7 @@ class GamblerCog(commands.Cog, name='gambler'):
 
     def update(self, string: str, *args):
         cursor = self.database.execute(
-            
+            string.format(*args)
         )
 
     def add_money(self, member, money_amount) -> None:
