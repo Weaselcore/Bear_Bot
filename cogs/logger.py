@@ -7,7 +7,7 @@ import motor.motor_asyncio
 # needed to parse passwords with @ symbols.
 import urllib
 from discord.ext import commands, tasks
-from BBLibrary.ConfigUtil import *
+from bblib.ConfigUtil import *
 
 # Default interval is 15 minutes.
 # Initialised outside of class as a constant.
