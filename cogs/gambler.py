@@ -1,6 +1,5 @@
 import datetime
 import logging
-
 from discord.ext.commands import cooldown
 from discord.ext import commands
 from database.DatabaseWrapper import DatabaseWrapper
