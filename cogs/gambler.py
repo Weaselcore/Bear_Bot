@@ -21,7 +21,7 @@ create_member_table = """CREATE TABLE member(
                             last_used timestamp);"""
 
 create_gambler_stat_table = """CREATE TABLE gambler_stat(
-                            _id integer NOT NULL,
+                            _id integer NOT NULL PRIMARY KEY,
                             money_amount integer,
                             last_stolen_id text,
                             last_redeemed timestamp,
@@ -97,7 +97,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         self.database.execute(
             f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, total_lost) values({member.id}, {old_amount - money_amount}, {money_amount + money_amount});""")
 
-    @commands.command()
+    @commands.command(aliases=['balance', 'bal'])
     async def money(self, ctx):
         if len(ctx.message.mentions) > 0:
             member = ctx.message.mentions[0]
@@ -124,18 +124,19 @@ class GamblerCog(commands.Cog, name='gambler'):
 
         await ctx.message.channel.send(f"You have redeemed $100. Balance is now ${money_retrieved + 100}.")
 
-    @commands.command()
+    @commands.command(aliases=['double'])
     async def gamble(self, ctx):
         member = ctx.message.author
         money = self.get_money(member)
-        if fifty():
-            new_money = money * 2
-            self.add_money(member, new_money)
-            await ctx.message.channel.send(f"You have successfully doubled your money: {new_money}")
+        if money != 0:
+            if fifty():
+                self.add_money(member, money)
+                await ctx.message.channel.send(f"You have successfully doubled your money: ${self.get_money(member)}")
+            else:
+                self.remove_money(member, money)
+                await ctx.message.channel.send(f"You have lost all your money: -${money}")
         else:
-            new_money = 0
-            self.add_money(member, new_money)
-            await ctx.message.channel.send(f"You have lost all your money: {new_money}")
+            await message(ctx, "Your balance is 0. Get a job.")
 
     @commands.command()
     async def steal(self, ctx):
@@ -160,7 +161,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                     money = self.get_money(member)
                     self.remove_money(member, round(money * 0.25))
                     await message(ctx,
-                                  f"You have been caught. You've been fined {round(money * 0.25)}. Balance: {round(money * 0.75)} ")
+                                  f"You have been caught. You've been fined ${round(money * 0.25)}. Balance: ${round(money * 0.75)} ")
             else:
                 await message(ctx, "You cannot steal from people who have nothing. How heartless.")
 
