@@ -85,6 +85,8 @@ async def bamboozle(ctx):
         print(f'{ctx.author.name} tried to use this command.')
     """
 
+
+
 client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.
 bot.run(token)
