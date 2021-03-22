@@ -9,27 +9,25 @@ from database.DatabaseWrapper import DatabaseWrapper
 create_guild_table = """CREATE TABLE guild(
                             guild_id integer PRIMARY KEY,
                             name text NOT NULL,
-                            creation_date timestamp,
-                            last_used timestamp);"""
+                            creation_date timestamp);"""
 
 create_member_table = """CREATE TABLE member(
-                            _id integer PRIMARY KEY,
+                            _id integer NOT NULL PRIMARY KEY,
                             name text NOT NULL,
-                            creation_date timestamp,
-                            last_used timestamp);"""
+                            creation_date timestamp);"""
 
 create_gambler_stat_table = """CREATE TABLE gambler_stat(
                             _id integer NOT NULL PRIMARY KEY,
-                            money_amount integer,
+                            nickname text DEFAULT NULL,
+                            money_amount integer DEFAULT 0,
                             last_stolen_id text,
                             last_redeemed timestamp,
                             last_stolen_datetime timestamp,
-                            total_gained integer,
-                            total_lost integer,
-                            FOREIGN KEY (_id) REFERENCES member(_id));"""
+                            total_gained integer DEFAULT 0,
+                            total_lost integer DEFAULT 0);"""
 
 
-async def message(ctx, incoming_message):
+async def message(ctx, incoming_message) -> None:
     await ctx.message.channel.send(incoming_message)
 
 
@@ -51,8 +49,8 @@ class GamblerCog(commands.Cog, name='gambler'):
         """ Check if tables are in the database. """
         global create_gambler_stat_table, create_member_table, create_guild_table
 
-        table_name_tuple = ('guild', 'member', 'gambler_stat')
-        table_create_tuple = (create_guild_table, create_member_table, create_gambler_stat_table)
+        table_name_tuple = ('guild', 'gambler_stat')
+        table_create_tuple = (create_guild_table, create_gambler_stat_table)
         to_unzip = zip(table_name_tuple, table_create_tuple)
 
         for tuple_data in to_unzip:
@@ -68,7 +66,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         list_of_guilds = self.bot.guilds
         for guild in list_of_guilds:
             self.database.execute(
-                f"""INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values({guild.id}, "{guild.name}", "{str(datetime.datetime.utcnow())}");""")
+                f"""INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values({guild.id}, "{guild.name}", "{datetime.datetime.utcnow()}");""")
 
     def get_money(self, member) -> int:
         cursor = self.database.execute(
@@ -78,25 +76,34 @@ class GamblerCog(commands.Cog, name='gambler'):
         money = 0 if len(money_list) == 0 else money_list[0][0]
         return money
 
-    def update(self, string: str, *args):
+    def member_exists(self, member):
         cursor = self.database.execute(
-            string.format(*args)
+            f"SELECT _id FROM gambler_stat WHERE _id={member.id}")
+        result = cursor.fetchall()
+        if len(result) == 0:
+            self.database.execute(
+                f"""INSERT INTO gambler_stat (_id, money_amount) values({member.id}, 0);""")
+
+    def update(self, list_to_change, member_id):
+        # nickname, money_amount, last_stolen_id, last_redeemed, last_stolen_datetime, total_gained, total_lost
+        values = list(zip(*list_to_change))
+        cursor = self.database.execute(
+            f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};'''
         )
 
     def add_money(self, member, money_amount) -> None:
         old_amount = self.get_money(member)
         # Add money_amount to previous amount, add money gained.
-        self.database.execute(
-            f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, total_gained) values({member.id}, {old_amount + money_amount}, {old_amount + money_amount});""")
+        self.update([('nickname', member.nick), ('money_amount', old_amount + money_amount), ('total_gained', old_amount + money_amount)], member_id=member.id)
 
     def remove_money(self, member, money_amount) -> None:
         old_amount = self.get_money(member)
         # Subtract money_amount to previous amount, add money lost.
-        self.database.execute(
-            f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, total_lost) values({member.id}, {old_amount - money_amount}, {money_amount + money_amount});""")
+        self.update([('nickname', member.nick), ('money_amount', old_amount - money_amount), ('total_lost', old_amount + money_amount)], member_id=member.id)
 
     @commands.command(aliases=['balance', 'bal'])
     async def money(self, ctx):
+        self.member_exists(ctx.message.author)
         if len(ctx.message.mentions) > 0:
             member = ctx.message.mentions[0]
             money = self.get_money(member)
@@ -111,19 +118,17 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command()
     async def redeem(self, ctx):
         member = ctx.message.author
-        self.database.execute(
-            f"""INSERT OR REPLACE INTO member (_id, name, creation_date, last_used) values({member.id}, "{member.name}", null, "{str(datetime.datetime.utcnow())}");""")
+        self.member_exists(ctx.message.author)
 
+        # TODO make it consistent with add_money.
         money_retrieved = self.get_money(member)
-        money_amount = money_retrieved if money_retrieved is not None else 0
 
-        self.database.execute(
-            f"""INSERT OR REPLACE INTO gambler_stat (_id, money_amount, last_redeemed, total_gained) values({member.id}, {money_amount + 100}, "{str(datetime.datetime.utcnow())}", {money_amount + 100});""")
-
+        self.update([('nickname', member.nick), ('money_amount', money_retrieved + 100), ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money_retrieved + 100)], member_id=member.id)
         await ctx.message.channel.send(f"You have redeemed $100. Balance is now ${money_retrieved + 100}.")
 
     @commands.command(aliases=['double'])
     async def gamble(self, ctx):
+        self.member_exists(ctx.message.author)
         member = ctx.message.author
         money = self.get_money(member)
         if money != 0:
@@ -134,10 +139,11 @@ class GamblerCog(commands.Cog, name='gambler'):
                 self.remove_money(member, money)
                 await ctx.message.channel.send(f"You have lost all your money: -${money}")
         else:
-            await message(ctx, "Your balance is 0. Get a job.")
+            await message(ctx, "Your balance is $0. Get a job.")
 
     @commands.command()
     async def steal(self, ctx):
+        self.member_exists(ctx.message.author)
         member = ctx.message.author
         mention = ctx.message.mentions
         if len(mention) == 0:
@@ -149,12 +155,13 @@ class GamblerCog(commands.Cog, name='gambler'):
             self.remove_money(member, money)
             await message(ctx, "You tried to mug Bear Bot?!? Reverse card! You're now naked, penniless and homeless.")
         else:
+            self.member_exists(mention[0])
             target_money = self.get_money(mention[0])
             if target_money is not None and target_money != 0:
                 if fifty():
                     self.remove_money(mention[0], target_money)
                     self.add_money(member, target_money)
-                    await message(ctx, f"You have stolen from {mention[0].nick}. New balance: {self.get_money(member)}")
+                    await message(ctx, f"You have stolen from {mention[0].nick if mention[0].nick is not None else mention[0].name}. New balance: ${self.get_money(member)}")
                 else:
                     money = self.get_money(member)
                     self.remove_money(member, round(money * 0.25))
