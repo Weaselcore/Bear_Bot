@@ -6,8 +6,6 @@ from discord.ext.commands import cooldown
 from discord.ext import commands
 from database.DatabaseWrapper import DatabaseWrapper
 
-# TODO to fix the parsing of datetime.
-
 create_guild_table = """CREATE TABLE guild(
                             guild_id integer PRIMARY KEY,
                             name text NOT NULL,

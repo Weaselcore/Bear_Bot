@@ -1,8 +1,13 @@
+import datetime
 import sqlite3
 import logging
-
+import time
 from pathlib import Path
 from sqlite3 import Error
+
+
+def adapt_datetime(ts):
+    return time.mktime(ts.timetuple())
 
 
 class DatabaseWrapper:
@@ -23,6 +28,7 @@ class DatabaseWrapper:
                 else:
                     self.logger.info(__name__ + ': Existing database not found. Creating new db file.')
                 self.connection = sqlite3.connect(self.dbfile_path, detect_types=sqlite3.PARSE_DECLTYPES)
+                sqlite3.register_adapter(datetime.datetime, adapt_datetime)
                 self.cursor = self.connection.cursor()
                 self.execute("PRAGMA foreign_keys = 1")
                 self.logger.info("Opened up a database using SQLite3 Version: " + sqlite3.sqlite_version)
