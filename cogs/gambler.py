@@ -115,6 +115,11 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command(aliases=['stat', 'statistic'])
     @commands.check(member_create)
     async def info(self, ctx):
+        """
+        Returns information from the database on a specific member.
+        Mentioning someone will return theirs, no mention will return your information.
+        :param ctx:
+        """
         with DatabaseWrapper() as database:
             if len(ctx.message.mentions) != 0:
                 member = ctx.message.mentions[0]
@@ -137,6 +142,11 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command(aliases=['balance', 'bal', 'bank'])
     @commands.check(member_create)
     async def money(self, ctx):
+        """
+        Returns information from the database on a specific member's balance.
+        Mentioning someone will return theirs, no mention will return your balance.
+        :param ctx:
+        """
         with DatabaseWrapper() as database:
             if len(ctx.message.mentions) > 0:
                 member = ctx.message.mentions[0]
@@ -154,12 +164,18 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command()
     @commands.check(member_create)
     async def redeem(self, ctx):
+        """
+        Will give a member $100 and will update database.
+        :param ctx:
+        """
         member = ctx.message.author
-        title = ("ANOTHER STIMULUS CHEQUE???",)
         money = get_money(member)
+
         update([('nickname', get_member_str(member)), ('money_amount', money + 100),
                 ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money + 100)],
                member_id=member.id)
+
+        title = ("ANOTHER STIMULUS CHEQUE???",)
         embed = bblib.Embed.GamblerEmbed.general(
             title + ("You have redeemed $100.", f"Balance is now ${money + 100}."))
         await ctx.message.channel.send(embed=embed)
@@ -167,6 +183,10 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command(aliases=['double'])
     @commands.check(member_create)
     async def gamble(self, ctx):
+        """
+        Will gamble all member's money if no amount is stated.
+        :param ctx:
+        """
         member, money_to_gamble = ctx.message.author, 0
         money = get_money(member)
 
@@ -200,7 +220,12 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command()
     @commands.check(member_create)
     async def steal(self, ctx):
-
+        """
+        Will steal from another member if mentioned, cannot steal from the same member twice.
+        If player's are "caught", they will be fined.
+        :param ctx:
+        :return:
+        """
         def get_last_stolen(member_id):
             with DatabaseWrapper() as database:
                 cursor = database.execute(f"SELECT last_stolen_id FROM gambler_stat WHERE _id = {member_id}")
