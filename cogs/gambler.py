@@ -47,6 +47,12 @@ def get_money(member) -> int:
 
 
 def member_create(ctx):
+    """
+    Is a predicate function for the @command.check decorator.
+    This ensures that the member that's being queried will have a row available.
+    :param ctx:
+    :return True: Will always be the case.
+    """
     with DatabaseWrapper() as database:
         members_to_check = [ctx.message.author.id]
         members_to_check.extend(ctx.message.raw_mentions)
@@ -258,16 +264,12 @@ class GamblerCog(commands.Cog, name='gambler'):
                     footer = f"Balance: ${round(money * 0.75)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
                        member_id=member.id)
+
                 embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
                 await message_channel(ctx, embed=embed)
             else:
                 await message_channel(ctx,
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
-
-
-def cog_unload(self):
-    self.database.close()
-
 
 def setup(bot):
     bot.add_cog(GamblerCog(bot))
