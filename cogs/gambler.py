@@ -56,19 +56,16 @@ def get_money(member) -> int:
         return money
 
 
-def member_exists(ctx) -> bool:
-    member = None
-    try:
-        member = ctx.message.author.id
-    except AttributeError:
-        member = ctx.id
-    finally:
-        with DatabaseWrapper() as database:
+def member_create(ctx):
+    with DatabaseWrapper() as database:
+        members_to_check = [ctx.message.author.id]
+        members_to_check.extend(ctx.message.raw_mentions)
+        for member in members_to_check:
             cursor = database.execute(f"SELECT _id FROM gambler_stat WHERE _id={member}")
             result = cursor.fetchall()
-            if len(result) == 0:
+            if not result:
                 database.execute(f"""INSERT INTO gambler_stat (_id, money_amount) values({member}, 0);""")
-        return True
+    return True
 
 
 def update(list_to_change, member_id):
@@ -110,7 +107,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         for tuple_data in to_unzip:
             with DatabaseWrapper() as database:
                 check_format = f''' SELECT count(name) FROM sqlite_master WHERE type = "table" AND name = "{tuple_data[0]}" '''
-                cursor = database.execute( check_format)
+                cursor = database.execute(check_format)
                 if cursor.fetchone()[0] == 1:
                     self.logger.info((tuple_data[0]).upper() + " table exists.")
                 else:
@@ -121,10 +118,11 @@ class GamblerCog(commands.Cog, name='gambler'):
         list_of_guilds = self.bot.guilds
         with DatabaseWrapper() as database:
             for guild in list_of_guilds:
-                database.execute(f"""INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values({guild.id}, "{guild.name}", "{datetime.datetime.utcnow()}");""")
+                database.execute(
+                    f"""INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values({guild.id}, "{guild.name}", "{datetime.datetime.utcnow()}");""")
 
     @commands.command(aliases=['stat', 'statistic'])
-    @commands.check(member_exists)
+    @commands.check(member_create)
     async def info(self, ctx):
         with DatabaseWrapper() as database:
             member = ctx.message.author
@@ -136,7 +134,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message(ctx, embed=embed)
 
     @commands.command(aliases=['balance', 'bal', 'bank'])
-    @commands.check(member_exists)
+    @commands.check(member_create)
     async def money(self, ctx):
         with DatabaseWrapper() as database:
             if len(ctx.message.mentions) > 0:
@@ -146,11 +144,15 @@ class GamblerCog(commands.Cog, name='gambler'):
                 member = ctx.message.author
                 cursor = database.execute(f"SELECT money_amount FROM gambler_stat WHERE _id={member.id}")
                 money = cursor.fetchall()[0][0]
-            await message(ctx, incoming_message=f'Member: {get_member_name(member)} has ${money}.')
+            title = "FETCHING BALANCE FROM BEAR BANK"
+            description = f'Balance: ${money}'
+            footer = f'Member: {get_member_name(member)}'
+            embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
+            await message(ctx, embed=embed)
 
     # TODO check timestamp from db instead using cool down from memory.
     @commands.command()
-    @commands.check(member_exists)
+    @commands.check(member_create)
     async def redeem(self, ctx):
         member = ctx.message.author
         title = ("ANOTHER STIMULUS CHEQUE???",)
@@ -164,7 +166,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         await ctx.message.channel.send(embed=embed)
 
     @commands.command(aliases=['double'])
-    @commands.check(member_exists)
+    @commands.check(member_create)
     async def gamble(self, ctx):
         member = ctx.message.author
         money = get_money(member)
@@ -186,7 +188,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         await message(ctx, embed=embed)
 
     @commands.command()
-    @commands.check(member_exists)
+    @commands.check(member_create)
     async def steal(self, ctx):
 
         def get_last_stolen(member_id):
@@ -195,8 +197,8 @@ class GamblerCog(commands.Cog, name='gambler'):
                 return cursor.fetchall()[0][0]
 
         member, mention = ctx.message.author, ctx.message.mentions
-        mention = ctx.message.mentions
         last_stolen = get_last_stolen(member.id)
+
         if len(mention) == 0:
             await message(ctx, incoming_message="You have to mention someone to steal.")
         elif mention[0] == member:
@@ -208,13 +210,12 @@ class GamblerCog(commands.Cog, name='gambler'):
             money = get_money(member)
             remove_money(member, money)
             await message(ctx,
-                          incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, penniless and homeless.")
-        elif last_stolen is not None:
-            if int(last_stolen) == mention[0].id:
-                await message(ctx, "You cannot target the same person again!")
-                pass
+                          incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, penniless "
+                                           "and homeless.")
+        elif last_stolen is not None and int(last_stolen) == mention[0].id:
+            await message(ctx, "You cannot target the same person again!")
+            pass
         else:
-            member_exists(mention[0])
             target_money = get_money(mention[0])
             if target_money is not None and target_money != 0:
                 if fifty():
@@ -227,7 +228,8 @@ class GamblerCog(commands.Cog, name='gambler'):
                     money = get_money(member)
                     remove_money(member, round(money * 0.25))
                     await message(ctx,
-                                  incoming_message=f"You have been caught. You've been fined ${round(money * 0.25)}. Balance: ${round(money * 0.75)} ")
+                                  incoming_message=f"You have been caught. You've been fined ${round(money * 0.25)}. "
+                                                   f"Balance: ${round(money * 0.75)} ")
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
                        member_id=member.id)
             else:

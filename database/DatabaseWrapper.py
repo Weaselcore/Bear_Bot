@@ -10,7 +10,7 @@ def adapt_datetime(ts):
     return time.mktime(ts.timetuple())
 
 
-class DatabaseWrapper():
+class DatabaseWrapper:
 
     def __init__(self):
         self.dbfile_path = Path.cwd().joinpath('database', 'user_data.db')
