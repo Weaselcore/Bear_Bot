@@ -75,18 +75,12 @@ def update(list_to_change, member_id):
         database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
 
 
-def add_money(member, money_amount) -> None:
+def update_money(member, money_amount, add=True):
     old_amount = get_money(member)
-    # Add money_amount to previous amount, add money gained.
-    update([('nickname', get_member_str(member)), ('money_amount', old_amount + money_amount),
+    money_to_add = old_amount + money_amount if add else old_amount - money_amount
+
+    update([('nickname', get_member_str(member)), ('money_amount', money_to_add),
             ('total_gained', old_amount + money_amount)], member_id=member.id)
-
-
-def remove_money(member, money_amount) -> None:
-    old_amount = get_money(member)
-    # Subtract money_amount to previous amount, add money lost.
-    update([('nickname', get_member_str(member)), ('money_amount', old_amount - money_amount),
-            ('total_lost', old_amount)], member_id=member.id)
 
 
 class GamblerCog(commands.Cog, name='gambler'):
@@ -162,7 +156,6 @@ class GamblerCog(commands.Cog, name='gambler'):
     async def redeem(self, ctx):
         member = ctx.message.author
         title = ("ANOTHER STIMULUS CHEQUE???",)
-        # TODO make it consistent with add_money.
         money = get_money(member)
         update([('nickname', get_member_str(member)), ('money_amount', money + 100),
                 ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money + 100)],
@@ -191,12 +184,12 @@ class GamblerCog(commands.Cog, name='gambler'):
 
         if money_to_gamble != 0:
             if fifty():
-                add_money(member, money_to_gamble)
+                update_money(member, money_to_gamble)
                 description_tuple = (
                     f"You have successfully doubled your money (${money_to_gamble} to ${money_to_gamble * 2}).",)
                 footer_tuple = (f"Your balance is now ${get_money(member)}",)
             else:
-                remove_money(member, money_to_gamble)
+                update_money(member, money_to_gamble, add=False)
                 description_tuple = (f"You have lost -${money_to_gamble}",)
                 footer_tuple = (f"Your balance is now ${get_money(member)}",)
 
@@ -225,7 +218,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             pass
         elif mention[0].id == 450904080211116032:
             money = get_money(member)
-            remove_money(member, money)
+            update_money(member, money, add=False)
             await message(ctx,
                           incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, penniless "
                                            "and homeless.")
@@ -237,13 +230,13 @@ class GamblerCog(commands.Cog, name='gambler'):
             title = "OOOH YOU STEALIN"
             if target_money is not None and target_money != 0:
                 if fifty():
-                    remove_money(mention[0], target_money)
-                    add_money(member, target_money)
+                    update_money(mention[0], target_money, add=False)
+                    update_money(member, target_money)
                     description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
                     footer = f"New balance: ${get_money(member)}"
                 else:
                     money = get_money(member)
-                    remove_money(member, round(money * 0.25))
+                    update_money(member, round(money * 0.25), add=False)
                     description = f"You have been caught. You've been fined ${round(money * 0.25)}. "
                     footer = f"Balance: ${round(money * 0.75)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
