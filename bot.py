@@ -11,6 +11,7 @@ from discord.ext import commands
 # Added in 1.5 to enable members cache.
 intents = discord.Intents.default()
 intents.members = True
+intents.guilds = True
 
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
 bot = commands.Bot(command_prefix='#', help_command=None, intents=intents)
@@ -85,6 +86,5 @@ async def bamboozle(ctx):
         print(f'{ctx.author.name} tried to use this command.')
     """
 
-client = discord.Client()
 # This is for your bot's token. Please keep this secure and hidden for security purposes.
 bot.run(token)

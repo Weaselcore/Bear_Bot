@@ -5,6 +5,7 @@ from random import random
 from discord.ext import commands
 
 import bblib.Embed
+from bblib.Util import get_member_str, get_member_object
 from database.DatabaseWrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
@@ -43,10 +44,6 @@ def fifty() -> bool:
     return True if float_number < 0.5 else False
 
 
-def get_member_name(member) -> str:
-    return member.name if member.nick is None else member.nick
-
-
 def get_money(member) -> int:
     with DatabaseWrapper() as database:
         cursor = database.execute(f"SELECT money_amount FROM gambler_stat WHERE _id={member.id}")
@@ -78,14 +75,14 @@ def update(list_to_change, member_id):
 def add_money(member, money_amount) -> None:
     old_amount = get_money(member)
     # Add money_amount to previous amount, add money gained.
-    update([('nickname', get_member_name(member)), ('money_amount', old_amount + money_amount),
+    update([('nickname', get_member_str(member)), ('money_amount', old_amount + money_amount),
             ('total_gained', old_amount + money_amount)], member_id=member.id)
 
 
 def remove_money(member, money_amount) -> None:
     old_amount = get_money(member)
     # Subtract money_amount to previous amount, add money lost.
-    update([('nickname', get_member_name(member)), ('money_amount', old_amount - money_amount),
+    update([('nickname', get_member_str(member)), ('money_amount', old_amount - money_amount),
             ('total_lost', old_amount + money_amount)], member_id=member.id)
 
 
@@ -125,12 +122,21 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.check(member_create)
     async def info(self, ctx):
         with DatabaseWrapper() as database:
-            member = ctx.message.author
+            if ctx.message.mentions is not None:
+                member = ctx.message.mentions[0]
+            else:
+                member = ctx.message.author
+
             cursor = database.execute(f"""SELECT money_amount, last_stolen_id, last_stolen_datetime, 
             last_redeemed, total_gained, total_lost FROM gambler_stat WHERE _id = {member.id}""")
-            result = cursor.fetchall()
-            name_tuple = (get_member_name(member),)
-            embed = bblib.Embed.GamblerEmbed.gambler_stats(result[0] + name_tuple)
+            result = cursor.fetchall()[0]
+
+            last_stolen_member_object = get_member_object(ctx, result[1])
+            last_stolen_name = last_stolen_member_object.name if last_stolen_member_object.nick is None else last_stolen_member_object.nick
+
+            result_tuple = (result[0], last_stolen_name, result[2], result[3], result[4], result[5], get_member_str(member),)
+
+            embed = bblib.Embed.GamblerEmbed.gambler_stats(result_tuple)
             await message(ctx, embed=embed)
 
     @commands.command(aliases=['balance', 'bal', 'bank'])
@@ -146,11 +152,10 @@ class GamblerCog(commands.Cog, name='gambler'):
                 money = cursor.fetchall()[0][0]
             title = "FETCHING BALANCE FROM BEAR BANK"
             description = f'Balance: ${money}'
-            footer = f'Member: {get_member_name(member)}'
+            footer = f'Member: {get_member_str(member)}'
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
             await message(ctx, embed=embed)
 
-    # TODO check timestamp from db instead using cool down from memory.
     @commands.command()
     @commands.check(member_create)
     async def redeem(self, ctx):
@@ -158,7 +163,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         title = ("ANOTHER STIMULUS CHEQUE???",)
         # TODO make it consistent with add_money.
         money_retrieved = get_money(member)
-        update([('nickname', get_member_name(member)), ('money_amount', money_retrieved + 100),
+        update([('nickname', get_member_str(member)), ('money_amount', money_retrieved + 100),
                 ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money_retrieved + 100)],
                member_id=member.id)
         embed = bblib.Embed.GamblerEmbed.general(
@@ -170,20 +175,26 @@ class GamblerCog(commands.Cog, name='gambler'):
     async def gamble(self, ctx):
         member = ctx.message.author
         money = get_money(member)
-        title = ("FEELING LUCKY KID?",)
-        if money != 0:
-            if fifty():
-                add_money(member, money)
-                description_tuple = ("You have successfully doubled your money.",)
-                footer_tuple = (f"Your balance is now ${money * 2}",)
-            else:
-                remove_money(member, money)
-                description_tuple = (f"You have lost all your money: -${money}",)
-                footer_tuple = (f"Your balance is now $0",)
-        else:
-            description_tuple = ("Your balance is $0. Get a job.",)
-            footer_tuple = (f"Your balance is now $0",)
+        money_to_gamble = 0
+        description_tuple = ("Your balance is $0. Get a job.",)
+        footer_tuple = (f"Your balance is now $0",)
 
+        if isinstance(int(ctx.message.clean_content.split(' ')[1]), int) and int(ctx.message.clean_content.split(' ')[1]) <= money:
+            money_to_gamble = int(ctx.message.clean_content.split(' ')[1])
+        elif money != 0:
+            money_to_gamble = money
+
+        if money_to_gamble != 0:
+            if fifty():
+                add_money(member, money_to_gamble)
+                description_tuple = (f"You have successfully doubled your money (${money_to_gamble} to ${money_to_gamble * 2}).",)
+                footer_tuple = (f"Your balance is now ${get_money(member)}",)
+            else:
+                remove_money(member, money_to_gamble)
+                description_tuple = (f"You have lost -${money_to_gamble}",)
+                footer_tuple = (f"Your balance is now ${get_money(member)}",)
+
+        title = ("FEELING LUCKY KID?",)
         embed = bblib.Embed.GamblerEmbed.general(title + description_tuple + footer_tuple)
         await message(ctx, embed=embed)
 
@@ -217,21 +228,22 @@ class GamblerCog(commands.Cog, name='gambler'):
             pass
         else:
             target_money = get_money(mention[0])
+            title = "OOOH YOU STEALIN"
             if target_money is not None and target_money != 0:
                 if fifty():
                     remove_money(mention[0], target_money)
                     add_money(member, target_money)
-
-                    await message(ctx,
-                                  incoming_message=f"You have stolen from {mention[0].nick if mention[0].nick is not None else mention[0].name}. New balance: ${get_money(member)}")
+                    description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
+                    footer = f"New balance: ${get_money(member)}"
                 else:
                     money = get_money(member)
                     remove_money(member, round(money * 0.25))
-                    await message(ctx,
-                                  incoming_message=f"You have been caught. You've been fined ${round(money * 0.25)}. "
-                                                   f"Balance: ${round(money * 0.75)} ")
+                    description = f"You have been caught. You've been fined ${round(money * 0.25)}. "
+                    footer = f"Balance: ${round(money * 0.75)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
                        member_id=member.id)
+                embed = bblib.Embed.GamblerEmbed.general((title,description,footer))
+                await message(ctx, embed=embed)
             else:
                 await message(ctx, incoming_message="You cannot steal from people who have nothing. How heartless.")
 
