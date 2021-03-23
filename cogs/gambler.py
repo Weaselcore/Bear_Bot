@@ -5,7 +5,7 @@ from random import random
 from discord.ext import commands
 
 import bblib.Embed
-from bblib.Util import get_member_str, get_member_object
+from bblib.Util import get_member_str, get_member_object, message_channel
 from database.DatabaseWrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
@@ -27,16 +27,6 @@ create_gambler_stat_table = """CREATE TABLE gambler_stat(
                             last_stolen_datetime timestamp,
                             total_gained integer DEFAULT 0,
                             total_lost integer DEFAULT 0);"""
-
-
-# TODO fix total loss.
-
-
-async def message(ctx, incoming_message=None, embed=None) -> None:
-    if not embed:
-        await ctx.message.channel.send(incoming_message)
-    else:
-        await ctx.message.channel.send(embed=embed)
 
 
 def fifty() -> bool:
@@ -137,7 +127,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                 result[0], last_stolen_name, result[2], result[3], result[4], result[5], get_member_str(member),)
 
             embed = bblib.Embed.GamblerEmbed.gambler_stats(result_tuple)
-            await message(ctx, embed=embed)
+            await message_channel(ctx, embed=embed)
 
     @commands.command(aliases=['balance', 'bal', 'bank'])
     @commands.check(member_create)
@@ -159,7 +149,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             description = f'Balance: ${money}'
             footer = f'Member: {get_member_str(member)}'
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
-            await message(ctx, embed=embed)
+            await message_channel(ctx, embed=embed)
 
     @commands.command()
     @commands.check(member_create)
@@ -215,7 +205,7 @@ class GamblerCog(commands.Cog, name='gambler'):
 
         title = ("FEELING LUCKY KID?",)
         embed = bblib.Embed.GamblerEmbed.general(title + description_tuple + footer_tuple)
-        await message(ctx, embed=embed)
+        await message_channel(ctx, embed=embed)
 
     @commands.command()
     @commands.check(member_create)
@@ -226,6 +216,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         :param ctx:
         :return:
         """
+
         def get_last_stolen(member_id):
             with DatabaseWrapper() as database:
                 cursor = database.execute(f"SELECT last_stolen_id FROM gambler_stat WHERE _id = {member_id}")
@@ -235,20 +226,21 @@ class GamblerCog(commands.Cog, name='gambler'):
         last_stolen = get_last_stolen(member.id)
 
         if len(mention) == 0:
-            await message(ctx, incoming_message="You have to mention someone to steal.")
+            await message_channel(ctx, incoming_message="You have to mention someone to steal.")
         elif mention[0] == member:
-            await message(ctx, incoming_message="You just stole from yourself, idiot.")
+            await message_channel(ctx, incoming_message="You just stole from yourself, idiot.")
         elif get_money(member) == 0:
-            await message(ctx, incoming_message="You cannot steal if you do not have money!")
+            await message_channel(ctx, incoming_message="You cannot steal if you do not have money!")
             pass
         elif mention[0].id == 450904080211116032:
             money = get_money(member)
             update_money(member, money, add=False)
-            await message(ctx,
-                          incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, penniless "
-                                           "and homeless.")
+            await message_channel(ctx,
+                                  incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
+                                                   "penniless "
+                                                   "and homeless.")
         elif last_stolen is not None and int(last_stolen) == mention[0].id:
-            await message(ctx, "You cannot target the same person again!")
+            await message_channel(ctx, "You cannot target the same person again!")
             pass
         else:
             target_money = get_money(mention[0])
@@ -267,9 +259,10 @@ class GamblerCog(commands.Cog, name='gambler'):
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
                        member_id=member.id)
                 embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
-                await message(ctx, embed=embed)
+                await message_channel(ctx, embed=embed)
             else:
-                await message(ctx, incoming_message="You cannot steal from people who have nothing. How heartless.")
+                await message_channel(ctx,
+                                      incoming_message="You cannot steal from people who have nothing. How heartless.")
 
 
 def cog_unload(self):
