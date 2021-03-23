@@ -4,6 +4,8 @@ discord.log
 config.json
 *__pycache__
 venv
-database/user_data.db
+database/backup/user_data.db
 *.xml
 database/__pycache__*
+database/database.log
+database/user_data.db

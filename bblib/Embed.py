@@ -8,8 +8,14 @@ class GamblerEmbed:
         embed = discord.Embed(title="GAMBLER STATISTICS", color=0x009dd5)
         embed.add_field(name="Balance " + u"\U0001F3E6", value=f'${list_of_args[0]}', inline=False)
         embed.add_field(name="Who Mugged Last " + u"\U0001F575", value=f'{list_of_args[1]}', inline=False)
-        embed.add_field(name="When Last Mugged " + u"\u231A", value=f'{list_of_args[2].strftime("%d/%m/%y | %X")}', inline=False)
-        embed.add_field(name="Last Time Redeemed " + u"\U0001F305", value=f'{list_of_args[3].strftime("%d/%m/%y | %X")}', inline=False)
+        embed.add_field(
+            name="When Last Mugged " + u"\u231A",
+            value=f'{list_of_args[2].strftime("%d/%m/%y | %X") if list_of_args[2] is not None else "None"}',
+            inline=False)
+        embed.add_field(
+            name="Last Time Redeemed " + u"\U0001F305",
+            value=f'{list_of_args[3].strftime("%d/%m/%y | %X") if list_of_args[3] is not None else "None"}',
+            inline=False)
         embed.add_field(name="Total Gained " + u"\U0001F4B0", value=f'${list_of_args[4]}', inline=False)
         embed.add_field(name="Total Lost " + u"\U0001F4B8", value=f'${list_of_args[5]}', inline=False)
         embed.set_footer(text=f"Stats for {list_of_args[6]}")
