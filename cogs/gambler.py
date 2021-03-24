@@ -185,22 +185,17 @@ class GamblerCog(commands.Cog, name='gambler'):
         Will gamble all member's money if no amount is stated.
         :param ctx:
         """
-        member, money_to_gamble = ctx.message.author, 0
+        member = ctx.message.author
+        money_to_gamble = bblib.Util.get_number_arg(ctx)
         money = get_money(member)
+
+        if money != 0:
+            money_to_gamble = money
 
         description_tuple = ("Your balance is $0. Get a job.",)
         footer_tuple = (f"Your balance is now $0",)
 
-        arg_list = ctx.message.clean_content.split(' ')
-        amount_arg = arg_list[1] if len(arg_list) > 1 else None
-
-        if amount_arg:
-            if isinstance(int(amount_arg), int) and int(amount_arg) < money:
-                money_to_gamble = int(ctx.message.clean_content.splSit(' ')[1])
-        elif money != 0:
-            money_to_gamble = money
-
-        if money_to_gamble != 0:
+        if money_to_gamble is not None:
             if fifty():
                 update_money(member, money_to_gamble)
                 description_tuple = (
