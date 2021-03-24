@@ -353,6 +353,19 @@ class GamblerCog(commands.Cog, name='gambler'):
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
             await message_channel(ctx, embed=embed)
 
+    @commands.command(aliases=['rank'])
+    @commands.check(member_create)
+    async def leader(self, ctx):
+        with DatabaseWrapper() as database:
+            cursor = database.execute("SELECT nickname, money_amount, bank_amount FROM gambler_stat ORDER BY "
+                                      "money_amount + bank_amount DESC LIMIT 5")
+            result = cursor.fetchall()
+            embed = bblib.Embed.GamblerEmbed.leaderboard(result)
+            if embed:
+                await message_channel(ctx, embed=embed)
+            else:
+                await message_channel(ctx, incoming_message="No big ballers on this server.")
+
     '''
     @commands.command(aliases=['bj', 'black', 'jack'])
     @commands.check(member_create)

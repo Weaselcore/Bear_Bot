@@ -5,7 +5,16 @@ from bblib import Util
 class GamblerEmbed:
 
     @staticmethod
-    def gambler_stats(balance=0, bank=0, last_mugged=None, when_mugged=None, last_redeemed=None, total_gained=0, total_lost=0, member=None):
+    def gambler_stats(
+            balance=0,
+            bank=0,
+            last_mugged=None,
+            when_mugged=None,
+            last_redeemed=None,
+            total_gained=0,
+            total_lost=0,
+            member=None):
+
         embed = discord.Embed(title="GAMBLER STATISTICS", color=0x009dd5)
         embed.add_field(name="Balance " + u"\U0001F3E6", value=f'${balance}', inline=False)
         embed.add_field(name="Bank " + u"\U0001F911", value=f'${bank}', inline=False)
@@ -29,3 +38,19 @@ class GamblerEmbed:
         embed = discord.Embed(title=f"{list_of_args[0]}", color=0x006d03, description=f"{list_of_args[1]}")
         embed.set_footer(text=f"{list_of_args[2]}")
         return embed
+
+    @staticmethod
+    def leaderboard(list_of_args):
+        if len(list_of_args) is not None:
+            embed = discord.Embed(title="LEADERBOARD - TOP 5", color=0x047dd5)
+            count = 1
+            for element in list_of_args:
+                embed.add_field(name='*Rank*: ', value=f'```#{count}```', inline=True)
+                embed.add_field(name="*Name*: ", value=f'```     {element[0]}     ```', inline=True)
+                embed.add_field(
+                    name="*Amount*: ", value=f'Wallet: ```${element[1]}```Bank: ```${element[2]}```', inline=True
+                )
+                count += 1
+            return embed
+        else:
+            return None
