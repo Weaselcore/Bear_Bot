@@ -41,12 +41,13 @@ class GamblerEmbed:
 
     @staticmethod
     def leaderboard(list_of_args):
-        if len(list_of_args) is not None:
+        number_of_fields = len(list_of_args)
+        if number_of_fields > 0:
             embed = discord.Embed(title="LEADERBOARD - TOP 5", color=0x047dd5)
             count = 1
             for element in list_of_args:
                 embed.add_field(name='*Rank*: ', value=f'```#{count}```', inline=True)
-                embed.add_field(name="*Name*: ", value=f'```     {element[0]}     ```', inline=True)
+                embed.add_field(name="*Name*: ", value=f'```   {element[0]}   ```', inline=True)
                 embed.add_field(
                     name="*Amount*: ", value=f'Wallet: ```${element[1]}```Bank: ```${element[2]}```', inline=True
                 )

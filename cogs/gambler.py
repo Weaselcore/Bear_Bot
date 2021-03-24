@@ -354,7 +354,6 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message_channel(ctx, embed=embed)
 
     @commands.command(aliases=['rank'])
-    @commands.check(member_create)
     async def leader(self, ctx):
         with DatabaseWrapper() as database:
             cursor = database.execute("SELECT nickname, money_amount, bank_amount FROM gambler_stat ORDER BY "
