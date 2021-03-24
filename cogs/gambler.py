@@ -23,6 +23,7 @@ create_gambler_stat_table = """CREATE TABLE gambler_stat(
                             _id integer NOT NULL PRIMARY KEY,
                             nickname text DEFAULT NULL,
                             money_amount integer DEFAULT 0,
+                            bank_amount integer DEFAULT 0,
                             last_stolen_id text,
                             last_redeemed timestamp,
                             last_stolen_datetime timestamp,
@@ -272,6 +273,23 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx,
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
 
+    @commands.command()
+    @commands.check(member_create)
+    async def deposit(self, ctx):
+        # Check args
+
+        # Deposit amount.
+        pass
+
+    @commands.command()
+    @commands.check(member_create)
+    async def withdraw(self, ctx):
+        # Check args
+
+        # Withdraw amount.
+        pass
+
+    '''
     @commands.command(aliases=['bj', 'black', 'jack'])
     @commands.check(member_create)
     async def blackjack(self, ctx):
@@ -279,6 +297,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         await message_channel(ctx, incoming_message=f'Your hand: {blackjack_session.get_hand_value()} : {blackjack_session.get_hand_cards()}')
         await message_channel(ctx, incoming_message=f'Dealers hand: {blackjack_session.get_dealer_value()} : {blackjack_session.get_dealer_cards()}')
         await message_channel(ctx, incoming_message=f'Win: {blackjack_session.conclusion()}')
+    '''
 
 
 def setup(bot):
