@@ -5,7 +5,7 @@ from bblib import Util
 class GamblerEmbed:
 
     @staticmethod
-    def gambler_stats(list_of_args):
+    def gambler_stats(list_of_args: tuple):
         embed = discord.Embed(title="GAMBLER STATISTICS", color=0x009dd5)
         embed.add_field(name="Balance " + u"\U0001F3E6", value=f'${list_of_args[0]}', inline=False)
         embed.add_field(name="Who Mugged Last " + u"\U0001F575",

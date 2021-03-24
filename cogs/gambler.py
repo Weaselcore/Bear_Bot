@@ -43,9 +43,19 @@ def get_value(column_name: str, filter_str: str):
         return result
 
 
-def get_money(member) -> int:
-    money = get_value(member.id, '_id')
+def get_money(member_id) -> int:
+    money = get_value(member_id, '_id')
     return money
+
+
+def get_bank(member_id) -> int:
+    bank = get_value(member_id, '_id')
+    return bank
+
+
+def get_last_redeemed(member_id):
+    last_redeemed_time = get_value(member_id, 'last_redeemed')
+    return last_redeemed_time
 
 
 def member_create(ctx):
@@ -58,7 +68,7 @@ def member_create(ctx):
     with DatabaseWrapper() as database:
         members_to_check = [ctx.message.author.id]
         members_to_check.extend(ctx.message.raw_mentions)
-        for member in members_to_check:
+        for member in members_to_check:        # Deposit amount.
             cursor = database.execute(f"SELECT _id FROM gambler_stat WHERE _id={member}")
             result = cursor.fetchall()
             if not result:
@@ -66,7 +76,7 @@ def member_create(ctx):
     return True
 
 
-def update(list_to_change, member_id):
+def update(list_to_change: list, member_id):
     # nickname, money_amount, last_stolen_id, last_redeemed, last_stolen_datetime, total_gained, total_lost
     with DatabaseWrapper() as database:
         values = list(zip(*list_to_change))
@@ -74,7 +84,7 @@ def update(list_to_change, member_id):
 
 
 def update_money(member, money_amount, add=True):
-    old_amount = get_money(member)
+    old_amount = get_money(member.id)
     money_to_add = old_amount + money_amount if add else old_amount - money_amount
 
     update([('nickname', get_member_str(member)), ('money_amount', money_to_add),
@@ -148,7 +158,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         with DatabaseWrapper() as database:
             if len(ctx.message.mentions) > 0:
                 member = ctx.message.mentions[0]
-                money = get_money(member)
+                money = get_money(member.id)
             else:
                 member = ctx.message.author
                 cursor = database.execute(f"SELECT money_amount FROM gambler_stat WHERE _id={member.id}")
@@ -167,16 +177,20 @@ class GamblerCog(commands.Cog, name='gambler'):
         :param ctx:
         """
         member = ctx.message.author
-        money = get_money(member)
+        money = get_money(member.id)
+        last_redeemed = get_last_redeemed(member.id)
 
-        update([('nickname', get_member_str(member)), ('money_amount', money + 100),
-                ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money + 100)],
-               member_id=member.id)
+        if (datetime.datetime.utcnow() - last_redeemed).hour > 1:
+            update([('nickname', get_member_str(member)), ('money_amount', money + 100),
+                    ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money + 100)],
+                   member_id=member.id)
 
-        title = ("ANOTHER STIMULUS CHEQUE???",)
-        embed = bblib.Embed.GamblerEmbed.general(
-            title + ("You have redeemed $100.", f"Balance is now ${money + 100}."))
-        await ctx.message.channel.send(embed=embed)
+            title = ("ANOTHER STIMULUS CHEQUE???",)
+            embed = bblib.Embed.GamblerEmbed.general(
+                title + ("You have redeemed $100.", f"Balance is now ${money + 100}."))
+            await message_channel(ctx, embed=embed)
+        else:
+            await message_channel(ctx, "You've used the command within the hour, I don't have infinite money.")
 
     @commands.command(aliases=['double'])
     @commands.check(member_create)
@@ -187,7 +201,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         """
         member = ctx.message.author
         money_to_gamble = bblib.Util.get_number_arg(ctx)
-        money = get_money(member)
+        money = get_money(member.id)
 
         if money != 0:
             money_to_gamble = money
@@ -232,11 +246,11 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message_channel(ctx, incoming_message="You have to mention someone to steal.")
         elif mention[0] == member:
             await message_channel(ctx, incoming_message="You just stole from yourself, idiot.")
-        elif get_money(member) == 0:
+        elif get_money(member.id) == 0:
             await message_channel(ctx, incoming_message="You cannot steal if you do not have money!")
             pass
         elif mention[0].id == 450904080211116032:
-            money = get_money(member)
+            money = get_money(member.id)
             update_money(member, money, add=False)
             await message_channel(ctx,
                                   incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
@@ -246,16 +260,16 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message_channel(ctx, "You cannot target the same person again!")
             pass
         else:
-            target_money = get_money(mention[0])
+            target_money = get_money(mention[0].id)
             title = "OOOH YOU STEALIN"
             if target_money is not None and target_money != 0:
                 if fifty():
                     update_money(mention[0], target_money, add=False)
                     update_money(member, target_money)
                     description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
-                    footer = f"New balance: ${get_money(member)}"
+                    footer = f"New balance: ${get_money(member.id)}"
                 else:
-                    money = get_money(member)
+                    money = get_money(member.id)
                     update_money(member, round(money * 0.25), add=False)
                     description = f"You have been caught. You've been fined ${round(money * 0.25)}. "
                     footer = f"Balance: ${round(money * 0.75)} "
@@ -268,21 +282,58 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx,
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
 
+    # TODO create a function to simplify both commands.
     @commands.command()
     @commands.check(member_create)
     async def deposit(self, ctx):
-        # Check args
+        number_arg = bblib.Util.get_number_arg(ctx)
 
-        # Deposit amount.
-        pass
+        if number_arg is None:
+            await message_channel(ctx, incoming_message="Please add amount to deposit.")
+        else:
+            member = ctx.message.author
+            money = get_money(member.id)
+            bank = get_bank(member.id)
+            new_bank_amount, new_money_amount = 0, 0
+
+            if number_arg >= money:
+                new_bank_amount = money
+            else:
+                new_money_amount = money - number_arg
+                new_bank_amount = bank + number_arg
+            update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
+
+            title = "DEPOSITING TO BEAR BANK..."
+            description = f'You have deposited {new_bank_amount}.'
+            footer = f'Balance: {get_member_str(ctx.message.author)}'
+            embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
+            await message_channel(ctx, embed=embed)
 
     @commands.command()
     @commands.check(member_create)
     async def withdraw(self, ctx):
-        # Check args
+        number_arg = bblib.Util.get_number_arg(ctx)
 
-        # Withdraw amount.
-        pass
+        if number_arg is None:
+            await message_channel(ctx, incoming_message="Please add amount to withdraw.")
+        else:
+            member = ctx.message.author
+            money = get_money(member.id)
+            bank = get_bank(member.id)
+            new_bank_amount, new_money_amount = 0, 0
+
+            if number_arg >= bank:
+                new_bank_amount = bank
+            else:
+                new_money_amount = money + number_arg
+                new_bank_amount = bank - number_arg
+            update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
+
+            title = "WITHDRAWING TO BEAR BANK..."
+            description = f'You have withdrawn {new_bank_amount}.'
+            footer = f'Balance: {get_member_str(ctx.message.author)}'
+            embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
+            await message_channel(ctx, embed=embed)
 
     '''
     @commands.command(aliases=['bj', 'black', 'jack'])
