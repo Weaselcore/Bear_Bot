@@ -210,7 +210,10 @@ class GamblerCog(commands.Cog, name='gambler'):
                 title + ("You have redeemed $100.", f"Balance is now ${money + 100}."))
             await message_channel(ctx, embed=embed)
         else:
-            await message_channel(ctx, "You've used the command within the hour, I don't have infinite money.")
+            time_remaining = datetime.timedelta(hours=1) - (now - last_redeemed)
+            await message_channel(
+                ctx,
+                f"On cooldown, I don't have infinite money. {round(time_remaining.seconds/60)} minutes remaining.")
 
     @commands.command(aliases=['double'])
     @commands.check(member_create)
@@ -274,13 +277,17 @@ class GamblerCog(commands.Cog, name='gambler'):
             update_money(member, money, add=False)
             await message_channel(ctx,
                                   incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
-                                                   "penniless "
-                                                   "and homeless.")
+                                                   "penniless and homeless.")
         elif last_stolen is not None and int(last_stolen) == mention[0].id:
             await message_channel(ctx, "You cannot target the same person again!")
             pass
         else:
-            target_money = get_money(mention[0].id)
+            # This prevents people with low balance stealing all from high balance people.
+            if get_money(member.id) >= get_money(mention[0].id):
+                target_money = get_money(mention[0].id)
+            else:
+                target_money = get_money(member.id)
+
             title = "OOOH YOU STEALIN"
             if target_money is not None and target_money != 0:
                 if fifty():
@@ -323,7 +330,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
 
             title = "DEPOSITING TO BEAR BANK..."
-            description = f'You have deposited ${new_bank_amount}.'
+            description = f'You have deposited ${number_arg}.'
             footer = f'Balance: ${get_money(member.id)} | Bank: ${get_bank(member.id)}'
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
             await message_channel(ctx, embed=embed)
@@ -348,7 +355,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
 
             title = "WITHDRAWING TO BEAR BANK..."
-            description = f'You have withdrawn ${new_bank_amount}.'
+            description = f'You have withdrawn ${number_arg}.'
             footer = f'Balance: ${get_money(member.id)} | Bank: ${get_bank(member.id)}'
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
             await message_channel(ctx, embed=embed)
