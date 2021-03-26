@@ -1,6 +1,6 @@
 import datetime
 import logging
-from random import random
+from random import choice
 
 from discord.ext import commands
 
@@ -31,7 +31,7 @@ create_gambler_stat_table = """CREATE TABLE gambler_stat(
 
 
 def fifty() -> bool:
-    return random.choice([True, False])
+    return choice([True, False])
 
 
 # TODO short on time, clean below

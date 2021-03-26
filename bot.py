@@ -1,6 +1,8 @@
 # Christian Plus Server by WhackaWeasel
 
 import json
+import sys
+
 import discord
 import time
 import logging
@@ -64,6 +66,7 @@ async def close(ctx):
         file_handler.write("halted")
     logger.info('Close function invoked. Shutting down and logging out gracefully.')
     await ctx.bot.logout()
+    sys.exit()
 
 
 @bot.command()
