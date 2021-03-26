@@ -13,6 +13,7 @@ intents = discord.Intents.default()
 intents.members = True
 intents.guilds = True
 
+# GLOBAL
 flag_file = Path.cwd().joinpath('flag_file.txt')
 
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
