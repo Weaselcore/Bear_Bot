@@ -31,8 +31,7 @@ create_gambler_stat_table = """CREATE TABLE gambler_stat(
 
 
 def fifty() -> bool:
-    float_number = random()
-    return True if float_number < 0.5 else False
+    return  random.choice([True, False])
 
 
 # TODO short on time, clean below
