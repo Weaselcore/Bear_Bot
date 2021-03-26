@@ -31,7 +31,7 @@ create_gambler_stat_table = """CREATE TABLE gambler_stat(
 
 
 def fifty() -> bool:
-    return  random.choice([True, False])
+    return random.choice([True, False])
 
 
 # TODO short on time, clean below
