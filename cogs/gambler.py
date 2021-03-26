@@ -5,9 +5,8 @@ from random import random
 from discord.ext import commands
 
 import bblib.Embed
-from bblib import Cards
 from bblib.Util import get_member_str, get_member_object, message_channel
-from database.DatabaseWrapper import DatabaseWrapper
+from DatabaseWrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
                             guild_id integer PRIMARY KEY,
@@ -166,7 +165,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message_channel(ctx, embed=embed)
 
     # TODO Use functions above to simplify this command.
-    @commands.command(aliases=['balance', 'bal', 'bank'])
+    @commands.command(aliases=['balance', 'bal'])
     @commands.check(member_create)
     async def money(self, ctx):
         """
@@ -310,7 +309,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
 
     # TODO create a function to simplify both commands.
-    @commands.command()
+    @commands.command(aliases=['bank'])
     @commands.check(member_create)
     async def deposit(self, ctx):
         number_arg = bblib.Util.get_number_arg(ctx)

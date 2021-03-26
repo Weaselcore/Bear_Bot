@@ -13,14 +13,24 @@ def adapt_datetime(ts):
 class DatabaseWrapper:
 
     def __init__(self):
-        self.dbfile_path = Path.cwd().joinpath('database', 'user_data.db')
+
+        # Create database folder outside of the bearbot working directory to make updating automation easier.
+        dbfolder_path = Path.cwd().parent.joinpath('Bearbot_Database')
+        if not dbfolder_path.exists():
+            dbfolder_path.mkdir()
+            # Printing as logging requires this directory to be initialised.
+            print("Fresh startup, creating database directory.")
+        # This file path will be used to create connections.
+        self.dbfile_path = Path.cwd().parent.joinpath('Bearbot_Database', 'user_data.db')
 
         self.connection = None
         self.cursor = None
 
         self.logger = logging.getLogger('database')
         self.logger.setLevel(logging.DEBUG)
-        handler = logging.FileHandler(filename='database/database.log', encoding='utf-8', mode='w')
+        handler = logging.FileHandler(
+            filename=f'{Path.cwd().parent.joinpath("Bearbot_Database", "database.log")}', encoding='utf-8', mode='w'
+        )
         handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
         self.logger.addHandler(handler)
 
@@ -38,7 +48,7 @@ class DatabaseWrapper:
                 self.cursor.execute("PRAGMA foreign_keys = 1")
                 self.logger.info("Opened up a database using SQLite3 Version: " + sqlite3.sqlite_version)
             except Error as e:
-                print(e)
+                print(str(e).upper())
 
     def close_connection(self) -> None:
         """Closes the connection for the instance."""

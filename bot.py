@@ -3,9 +3,9 @@
 import json
 import discord
 import time
-import random
 import logging
 
+from pathlib import Path
 from discord.ext import commands
 
 # Added in 1.5 to enable members cache.
@@ -13,11 +13,12 @@ intents = discord.Intents.default()
 intents.members = True
 intents.guilds = True
 
+flag_file = Path.cwd().joinpath('flag_file.txt')
+
 # Set a prefix which allows the bot to recognise its own commands/help command is disabled to implement a custom one.
 bot = commands.Bot(command_prefix='#', help_command=None, intents=intents)
 
 # Bot reads an external file for the token.
-
 with open('token.json', 'r') as file_to_read:
     token = json.load(file_to_read)
 
@@ -37,11 +38,17 @@ logger.addHandler(console)
 # First thing the bot runs.
 @bot.event
 async def on_ready():
-    global logger
+    global logger, flag_file
     name, identity = bot.user.name, bot.user.id
     print(f"Logged in as - Name: {name}; ID: {identity}\n\nReady when you are.")
     # This is to see if you're running the correct version of discord.py.
     print("Using version: ", discord.__version__, "\n")
+
+    # Create flag file for automation.
+    if not flag_file.exists():
+        with open(flag_file, 'w+') as file_handler:
+            file_handler.write("running")
+        logger.info("Creating flag file.")
 
     # Loads the handler for the config and will load the appropriate extensions.
     bot.load_extension("cogs.condler")
@@ -51,6 +58,9 @@ async def on_ready():
 @bot.command(aliases=["quit", "shutdown"])
 @commands.has_permissions(administrator=True)
 async def close(ctx):
+    global flag_file
+    with open(flag_file, "w+") as file_handler:
+        file_handler.write("halted")
     logger.info('Close function invoked. Shutting down and logging out gracefully.')
     await ctx.bot.logout()
 

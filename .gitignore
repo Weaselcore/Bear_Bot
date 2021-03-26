@@ -9,3 +9,4 @@ database/backup/user_data.db
 database/__pycache__*
 database/database.log
 database/user_data.db
+.idea/dictionaries/whackaweasel.xml
