@@ -63,7 +63,7 @@ class BlackJackSession:
         has_ace = 0
         for card in self.hand:
             name = card.get_name()
-            value = card.get_value()
+            value = card.get_single_value()
             if name == "Jack" or name == "Queen" or name == "King":
                 total += 10
             elif name == "Ace":
@@ -84,7 +84,7 @@ class BlackJackSession:
         has_ace = 0
         for card in self.dealer:
             name = card.get_name()
-            value = card.get_value()
+            value = card.get_single_value()
             if name == "Jack" or name == "Queen" or name == "King":
                 total += 10
             elif name == "Ace":

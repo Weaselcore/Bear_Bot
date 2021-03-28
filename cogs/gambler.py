@@ -34,7 +34,7 @@ def fifty() -> bool:
     return choice([True, False])
 
 
-def get_value(column_name: str, table_name: str, filter_name: str, filter_str: int):
+def get_single_value(column_name: str, table_name: str, filter_name: str, filter_str: int):
     with DatabaseWrapper() as database:
         cursor = database.execute(f"SELECT {column_name} FROM {table_name} WHERE ({filter_name})={filter_str}")
         result = cursor.fetchall()[0][0]
@@ -42,18 +42,38 @@ def get_value(column_name: str, table_name: str, filter_name: str, filter_str: i
 
 
 def get_money(member_id) -> int:
-    money = get_value('money_amount', 'gambler_stat', '_id', member_id)
+    money = get_single_value('money_amount', 'gambler_stat', '_id', member_id)
     return money
 
 
 def get_bank(member_id) -> int:
-    bank = get_value('bank_amount', 'gambler_stat', '_id', member_id)
+    bank = get_single_value('bank_amount', 'gambler_stat', '_id', member_id)
     return bank
 
 
 def get_last_redeemed(member_id):
-    last_redeemed_time = get_value('last_redeemed', 'gambler_stat', '_id', member_id)
+    last_redeemed_time = get_single_value('last_redeemed', 'gambler_stat', '_id', member_id)
     return last_redeemed_time
+
+
+def get_total_gained(member_id) -> int:
+    total_gained = get_single_value('total_gained', 'gambler_stat', '_id', member_id)
+    return total_gained
+
+
+def get_total_lost(member_id) -> int:
+    total_lost = get_single_value('total_lost', 'gambler_stat', '_id', member_id)
+    return total_lost
+
+
+def get_stolen_id(member_id):
+    stolen_name = get_single_value('last_stolen_id', 'gambler_stat', '_id', member_id)
+    return stolen_name
+
+
+def get_stolen_time(member_id):
+    stolen_time = get_single_value('last_stolen_datetime', 'gambler_stat', '_id', member_id)
+    return stolen_time
 
 
 def member_create(ctx):
@@ -81,12 +101,34 @@ def update(list_to_change: list, member_id):
         database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
 
 
-def update_money(member, money_amount, add=True):
-    old_amount = get_money(member.id)
-    money_to_add = old_amount + money_amount if add else old_amount - money_amount
+def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False):
 
-    update([('nickname', get_member_str(member)), ('money_amount', money_to_add),
-            ('total_gained', old_amount + money_amount)], member_id=member.id)
+    wallet_amount, bank_amount = get_money(member.id), get_bank(member.id)
+    total_gained = get_total_gained(member.id)
+    total_lost = get_total_lost(member.id)
+
+    if banking:
+        if add_wallet:
+            wallet_amount = wallet_amount + money_to_update
+            bank_amount = bank_amount - money_to_update
+        else:
+            wallet_amount = wallet_amount - money_to_update
+            bank_amount = bank_amount + money_to_update
+    elif not banking:
+        if add_wallet:
+            total_gained = total_gained + money_to_update
+            wallet_amount = wallet_amount + money_to_update
+        else:
+            total_lost = total_lost + money_to_update
+            wallet_amount = wallet_amount - money_to_update
+
+    data_tuple = [('nickname', get_member_str(member)), ('money_amount', wallet_amount),
+                  ('total_gained', total_gained), ('total_lost', total_lost), ('bank_amount', bank_amount)]
+
+    if redeem:
+        data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
+
+    update(data_tuple, member_id=member.id)
 
 
 class GamblerCog(commands.Cog, name='gambler'):
@@ -132,11 +174,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 member = ctx.message.author
 
-            cursor = database.execute(f"""SELECT last_stolen_id, last_stolen_datetime, total_gained, total_lost FROM 
-            gambler_stat WHERE _id = {member.id}""")
-            result = cursor.fetchall()[0]
-
-            last_stolen_member_object = get_member_object(ctx, result[0])
+            last_stolen_member_object = get_member_object(ctx, get_stolen_id(member.id))
             if last_stolen_member_object is not None:
                 last_stolen_name = last_stolen_member_object.name if last_stolen_member_object.nick is None else last_stolen_member_object.nick
             else:
@@ -146,9 +184,9 @@ class GamblerCog(commands.Cog, name='gambler'):
                                                            bank=get_bank(member.id),
                                                            last_redeemed=get_last_redeemed(member.id),
                                                            last_mugged=last_stolen_name,
-                                                           when_mugged=result[1],
-                                                           total_gained=result[2],
-                                                           total_lost=result[3],
+                                                           when_mugged=get_stolen_time(member.id),
+                                                           total_gained=get_total_gained(member.id),
+                                                           total_lost=get_total_lost(member.id),
                                                            member=get_member_str(member))
             await message_channel(ctx, embed=embed)
 
@@ -184,9 +222,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         now = datetime.datetime.utcnow()
 
         if last_redeemed is None or (now - last_redeemed) > datetime.timedelta(hours=1):
-            update([('nickname', get_member_str(member)), ('money_amount', money + 100),
-                    ('last_redeemed', str(datetime.datetime.utcnow())), ('total_gained', money + 100)],
-                   member_id=member.id)
+            update_money(member, 100, add_wallet=True, banking=False, redeem=True)
 
             title = ("ANOTHER STIMULUS CHEQUE???",)
             embed = bblib.Embed.GamblerEmbed.general(
@@ -194,9 +230,11 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message_channel(ctx, embed=embed)
         else:
             time_remaining = datetime.timedelta(hours=1) - (now - last_redeemed)
-            await message_channel(
-                ctx,
-                f"On cooldown, I don't have infinite money. ```{round(time_remaining.seconds/60)}``` minutes remaining.")
+            embed = bblib.Embed.GamblerEmbed.general(
+                ("Redeem is on Cooldown",
+                 f"I don't have infinite money. ```{round(time_remaining.seconds / 60)}``` minutes remaining.",
+                 f"Invoked by {get_member_str(member)}"))
+            await message_channel(ctx, embed=embed)
 
     @commands.command(aliases=['double'])
     @commands.check(member_create)
@@ -222,7 +260,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                     f"You have successfully doubled your money (${money_to_gamble} to ${money_to_gamble * 2}).",)
                 footer_tuple = (f"Your balance is now ${get_money(member.id)}",)
             else:
-                update_money(member, money_to_gamble, add=False)
+                update_money(member, money_to_gamble, add_wallet=False)
                 description_tuple = (f"You have lost ${money_to_gamble}.",)
                 footer_tuple = (f"Your balance is now ${get_money(member.id)}.",)
 
@@ -257,7 +295,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             pass
         elif mention[0].id == 450904080211116032:
             money = get_money(member.id)
-            update_money(member, money, add=False)
+            update_money(member, money, add_wallet=False)
             await message_channel(ctx,
                                   incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
                                                    "penniless and homeless.")
@@ -274,13 +312,13 @@ class GamblerCog(commands.Cog, name='gambler'):
             title = "OOOH YOU STEALIN"
             if target_money is not None and target_money != 0:
                 if fifty():
-                    update_money(mention[0], target_money, add=False)
+                    update_money(mention[0], target_money, add_wallet=False)
                     update_money(member, target_money)
                     description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
                     footer = f"New balance: ${get_money(member.id)}"
                 else:
                     money = get_money(member.id)
-                    update_money(member, round(money * 0.25), add=False)
+                    update_money(member, round(money * 0.25), add_wallet=False)
                     description = f"You have been caught. You've been fined ${round(money * 0.25)}. "
                     footer = f"Balance: ${round(money * 0.75)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
@@ -308,9 +346,10 @@ class GamblerCog(commands.Cog, name='gambler'):
             if number_arg >= money:
                 number_arg = money
 
-            new_money_amount = money - number_arg
-            new_bank_amount = bank + number_arg
-            update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
+            update_money(member, number_arg, add_wallet=False, banking=True)
+            # new_money_amount = money - number_arg
+            # new_bank_amount = bank + number_arg
+            # update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
 
             title = "DEPOSITING TO BEAR BANK..."
             description = f'You have deposited ${number_arg}.'
@@ -327,15 +366,16 @@ class GamblerCog(commands.Cog, name='gambler'):
             await message_channel(ctx, incoming_message="Please add amount to withdraw.")
         else:
             member = ctx.message.author
-            money = get_money(member.id)
-            bank = get_bank(member.id)
+            money, bank = get_money(member.id), get_bank(member.id)
 
             if number_arg >= bank:
                 number_arg = bank
 
-            new_money_amount = money + number_arg
-            new_bank_amount = bank - number_arg
-            update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
+            update_money(member, number_arg, add_wallet=True, banking=True)
+            #
+            # new_money_amount = money + number_arg
+            # new_bank_amount = bank - number_arg
+            # update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
 
             title = "WITHDRAWING TO BEAR BANK..."
             description = f'You have withdrawn ${number_arg}.'
