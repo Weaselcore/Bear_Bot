@@ -341,15 +341,11 @@ class GamblerCog(commands.Cog, name='gambler'):
         else:
             member = ctx.message.author
             money = get_money(member.id)
-            bank = get_bank(member.id)
 
             if number_arg >= money:
                 number_arg = money
 
             update_money(member, number_arg, add_wallet=False, banking=True)
-            # new_money_amount = money - number_arg
-            # new_bank_amount = bank + number_arg
-            # update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
 
             title = "DEPOSITING TO BEAR BANK..."
             description = f'You have deposited ${number_arg}.'
@@ -372,10 +368,6 @@ class GamblerCog(commands.Cog, name='gambler'):
                 number_arg = bank
 
             update_money(member, number_arg, add_wallet=True, banking=True)
-            #
-            # new_money_amount = money + number_arg
-            # new_bank_amount = bank - number_arg
-            # update([('bank_amount', new_bank_amount), ('money_amount', new_money_amount)], member.id)
 
             title = "WITHDRAWING TO BEAR BANK..."
             description = f'You have withdrawn ${number_arg}.'
