@@ -34,40 +34,25 @@ def fifty() -> bool:
     return choice([True, False])
 
 
-# TODO short on time, clean below
-def get_value_money(column_name: str, filter_str: str):
+def get_value(column_name: str, table_name: str, filter_name: str, filter_str: int):
     with DatabaseWrapper() as database:
-        cursor = database.execute(f"SELECT money_amount FROM gambler_stat WHERE ({column_name})={filter_str}")
-        result = cursor.fetchall()[0][0]
-        return result
-
-
-def get__value_bank(column_name: str, filter_str: str):
-    with DatabaseWrapper() as database:
-        cursor = database.execute(f"SELECT bank_amount FROM gambler_stat WHERE ({column_name})={filter_str}")
-        result = cursor.fetchall()[0][0]
-        return result
-
-
-def get_value_last_redeemed(column_name: str, filter_str: str):
-    with DatabaseWrapper() as database:
-        cursor = database.execute(f"SELECT last_redeemed FROM gambler_stat WHERE ({column_name})={filter_str}")
+        cursor = database.execute(f"SELECT {column_name} FROM {table_name} WHERE ({filter_name})={filter_str}")
         result = cursor.fetchall()[0][0]
         return result
 
 
 def get_money(member_id) -> int:
-    money = get_value_money(member_id, '_id')
+    money = get_value('money_amount', 'gambler_stat', '_id', member_id)
     return money
 
 
 def get_bank(member_id) -> int:
-    bank = get__value_bank(member_id, '_id')
+    bank = get_value('bank_amount', 'gambler_stat', '_id', member_id)
     return bank
 
 
 def get_last_redeemed(member_id):
-    last_redeemed_time = get_value_last_redeemed(member_id, '_id')
+    last_redeemed_time = get_value('last_redeemed', 'gambler_stat', '_id', member_id)
     return last_redeemed_time
 
 
