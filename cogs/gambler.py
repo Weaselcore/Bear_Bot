@@ -132,23 +132,26 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 member = ctx.message.author
 
-            cursor = database.execute(f"""SELECT money_amount, bank_amount, last_stolen_id, last_stolen_datetime, 
-            last_redeemed, total_gained, total_lost FROM gambler_stat WHERE _id = {member.id}""")
+            cursor = database.execute(f"""SELECT last_stolen_id, last_stolen_datetime, total_gained, total_lost FROM 
+            gambler_stat WHERE _id = {member.id}""")
             result = cursor.fetchall()[0]
 
-            last_stolen_member_object = get_member_object(ctx, result[2])
+            last_stolen_member_object = get_member_object(ctx, result[0])
             if last_stolen_member_object is not None:
                 last_stolen_name = last_stolen_member_object.name if last_stolen_member_object.nick is None else last_stolen_member_object.nick
             else:
                 last_stolen_name = "None"
 
-            embed = bblib.Embed.GamblerEmbed.gambler_stats(balance=result[0], bank=result[1],
-                                                           last_mugged=last_stolen_name, last_redeemed=result[4],
-                                                           total_gained=result[5], total_lost=result[6],
+            embed = bblib.Embed.GamblerEmbed.gambler_stats(balance=get_money(member.id),
+                                                           bank=get_bank(member.id),
+                                                           last_redeemed=get_last_redeemed(member.id),
+                                                           last_mugged=last_stolen_name,
+                                                           when_mugged=result[1],
+                                                           total_gained=result[2],
+                                                           total_lost=result[3],
                                                            member=get_member_str(member))
             await message_channel(ctx, embed=embed)
 
-    # TODO Use functions above to simplify this command.
     @commands.command(aliases=['balance', 'bal'])
     @commands.check(member_create)
     async def money(self, ctx):
@@ -157,19 +160,17 @@ class GamblerCog(commands.Cog, name='gambler'):
         Mentioning someone will return theirs, no mention will return your balance.
         :param ctx:
         """
-        with DatabaseWrapper() as database:
-            member = ctx.message.author
+        member = ctx.message.author
 
-            if len(ctx.message.mentions) > 0:
-                member = ctx.message.mentions[0]
+        if len(ctx.message.mentions) > 0:
+            member = ctx.message.mentions[0]
 
-            money = get_money(member.id)
-            bank = get_bank(member.id)
-            title = "FETCHING BALANCE FROM BEAR BANK"
-            description = f'Balance: ${money} | Bank: ${bank}'
-            footer = f'Member: {get_member_str(member)}'
-            embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
-            await message_channel(ctx, embed=embed)
+        money, bank = get_money(member.id), get_bank(member.id)
+        title = "FETCHING BALANCE FROM BEAR BANK"
+        description = f'Balance: ${money} | Bank: ${bank}'
+        footer = f'Member: {get_member_str(member)}'
+        embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
+        await message_channel(ctx, embed=embed)
 
     @commands.command()
     @commands.check(member_create)
@@ -179,8 +180,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         :param ctx:
         """
         member = ctx.message.author
-        money = get_money(member.id)
-        last_redeemed = get_last_redeemed(member.id)
+        money, last_redeemed = get_money(member.id), get_last_redeemed(member.id)
         now = datetime.datetime.utcnow()
 
         if last_redeemed is None or (now - last_redeemed) > datetime.timedelta(hours=1):
@@ -196,7 +196,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             time_remaining = datetime.timedelta(hours=1) - (now - last_redeemed)
             await message_channel(
                 ctx,
-                f"On cooldown, I don't have infinite money. {round(time_remaining.seconds/60)} minutes remaining.")
+                f"On cooldown, I don't have infinite money. ```{round(time_remaining.seconds/60)}``` minutes remaining.")
 
     @commands.command(aliases=['double'])
     @commands.check(member_create)
@@ -223,8 +223,8 @@ class GamblerCog(commands.Cog, name='gambler'):
                 footer_tuple = (f"Your balance is now ${get_money(member.id)}",)
             else:
                 update_money(member, money_to_gamble, add=False)
-                description_tuple = (f"You have lost ${money_to_gamble}",)
-                footer_tuple = (f"Your balance is now ${get_money(member.id)}",)
+                description_tuple = (f"You have lost ${money_to_gamble}.",)
+                footer_tuple = (f"Your balance is now ${get_money(member.id)}.",)
 
         title = ("FEELING LUCKY KID?",)
         embed = bblib.Embed.GamblerEmbed.general(title + description_tuple + footer_tuple)
