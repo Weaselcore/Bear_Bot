@@ -25,6 +25,7 @@ create_gambler_stat_table = """CREATE TABLE gambler_stat(
                             bank_amount integer DEFAULT 0,
                             last_stolen_id integer,
                             last_redeemed timestamp,
+                            last_bank_datetime timestamp,
                             last_stolen_datetime timestamp,
                             total_gained integer DEFAULT 0,
                             total_lost integer DEFAULT 0);"""
@@ -74,6 +75,11 @@ def get_stolen_id(member_id):
 def get_stolen_time(member_id):
     stolen_time = get_single_value('last_stolen_datetime', 'gambler_stat', '_id', member_id)
     return stolen_time
+
+
+def get_last_bank_time(member_id):
+    last_bank_time = get_single_value('last_bank_datetime', 'gambler_stat', '_id', member_id)
+    return last_bank_time
 
 
 def member_create(ctx):
@@ -127,6 +133,8 @@ def update_money(member, money_to_update, add_wallet=True, banking=False, redeem
 
     if redeem:
         data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
+    if banking and add_wallet:
+        data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
 
     update(data_tuple, member_id=member.id)
 
@@ -232,7 +240,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             time_remaining = datetime.timedelta(hours=1) - (now - last_redeemed)
             embed = bblib.Embed.GamblerEmbed.general(
                 ("Redeem is on Cooldown",
-                 f"I don't have infinite money. ```{round(time_remaining.seconds / 60)}``` minutes remaining.",
+                 f"```{datetime.datetime.fromtimestamp(time_remaining.seconds).strftime('%M minutes and %S seconds remaining')}```",
                  f"Invoked by {get_member_str(member)}"))
             await message_channel(ctx, embed=embed)
 
@@ -330,26 +338,35 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx,
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
 
-    # TODO create a function to simplify both commands.
+    # TODO clean up messaging
     @commands.command(aliases=['bank'])
     @commands.check(member_create)
     async def deposit(self, ctx):
         number_arg = bblib.Util.get_number_arg(ctx)
+        last_bank = get_last_bank_time(ctx.message.author.id)
 
-        if number_arg is None:
-            await message_channel(ctx, incoming_message="Please add amount to deposit.")
+        if last_bank is None or (datetime.datetime.utcnow() - last_bank) > datetime.timedelta(hours=12):
+            if number_arg is None:
+                await message_channel(ctx, incoming_message="Please add amount to deposit.")
+            else:
+                member = ctx.message.author
+                money = get_money(member.id)
+
+                if number_arg >= money:
+                    number_arg = money
+
+                update_money(member, number_arg, add_wallet=False, banking=True)
+
+                title = "DEPOSITING TO BEAR BANK..."
+                description = f'You have deposited ${number_arg}.'
+                footer = f'Balance: ${get_money(member.id)} | Bank: ${get_bank(member.id)}'
+                embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
+                await message_channel(ctx, embed=embed)
         else:
-            member = ctx.message.author
-            money = get_money(member.id)
-
-            if number_arg >= money:
-                number_arg = money
-
-            update_money(member, number_arg, add_wallet=False, banking=True)
-
-            title = "DEPOSITING TO BEAR BANK..."
-            description = f'You have deposited ${number_arg}.'
-            footer = f'Balance: ${get_money(member.id)} | Bank: ${get_bank(member.id)}'
+            time_remaining = datetime.timedelta(12) - (datetime.datetime.utcnow() - last_bank)
+            title = "Bank Command on Cooldown"
+            description = f'```{datetime.datetime.fromtimestamp(time_remaining.seconds).strftime("%H hours, %M minutes, %S seconds")} remaining```'
+            footer = f'Invoked by {get_member_str(ctx.message.author)}'
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
             await message_channel(ctx, embed=embed)
 
