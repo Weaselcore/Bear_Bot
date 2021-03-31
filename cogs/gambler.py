@@ -407,8 +407,8 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def reset_cooldown(self, ctx):
-        if len(ctx.message.mention) > 1:
-            member = ctx.message.mention[0]
+        if len(ctx.message.mentions) > 1:
+            member = ctx.message.mentions[0]
             update([("last_bank_datetime", "NULL", )], member.id)
         else:
             await message_channel(ctx, "You need to mention someone to reset.")
