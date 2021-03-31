@@ -405,6 +405,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
 
     @commands.command()
+    @commands.has_permissions(administrator=True)
     async def reset_cooldown(self, ctx):
         if len(ctx.message.mentions) > 1:
             member = ctx.message.mentions[0]
