@@ -404,6 +404,14 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
 
+    @commands.command()
+    async def reset_cooldown(self, ctx):
+        if len(ctx.message.mentions) > 1:
+            member = ctx.message.mentions[0]
+            update([("last_bank_datetime", "NULL", )], member.id)
+        else:
+            await message_channel(ctx, "You need to mention someone to reset.")
+
     '''
     @commands.command(aliases=['bj', 'black', 'jack'])
     @commands.check(member_create)
