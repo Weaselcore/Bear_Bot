@@ -56,7 +56,6 @@ async def on_ready():
     # Loads the handler for the config and will load the appropriate extensions.
     bot.load_extension("cogs.condler")
     bot.load_extension("cogs.gambler")
-    bot.load_extension("cogs.blackjack")
 
 
 @bot.command(aliases=["quit", "shutdown"])
