@@ -1,6 +1,6 @@
 from discord.ext import commands
-import json
 import pathlib
+from bblib import ConfigUtil
 
 
 class ConfigCog(commands.Cog, name='cogs.condler'):
@@ -27,10 +27,10 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
             # This portion will initialise the logger config.
             config["logger"] = {"interval": 15, "last_log": None, "last_check": None, "next_log": None}
             # This line will write the config dictionary to file.
-            self.json_dump('config.json', config)
+            ConfigUtil.json_dump('config.json', config)
         else:
             # If config file is found, it'll see which extensions to run.
-            config_dictionary = self.json_load('config.json')
+            config_dictionary = ConfigUtil.json_load('config.json')
             for key, value in config_dictionary['extension'].items():
                 if value is True:
                     self.running.append(key)
@@ -44,17 +44,6 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
                 bot.load_extension(cog)
                 print(f'* Extension "{cog}" has been loaded.')
 
-    @staticmethod
-    def json_load(file):
-        with open(file, 'r') as file_to_read:
-            data = json.load(file_to_read)
-        return data
-
-    @staticmethod
-    def json_dump(file, payload):
-        with open(file, 'w+') as file_to_write:
-            json.dump(payload, file_to_write, indent=4)
-
     @commands.command()
     async def unload(self, ctx, cog):
         cog = "cogs." + cog
@@ -63,11 +52,11 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
             self.running.remove(cog)
             await ctx.channel.send(f'Extension "{cog}" has been unloaded.')
             print(f'* Extension "{cog}" has been unloaded.')
-            cog_config_dict = self.json_load('config.json')
+            cog_config_dict = ConfigUtil.json_load('config.json')
             for config, config_value in cog_config_dict['extension'].items():
                 if config == cog:
                     cog_config_dict['extension'][config] = False
-            self.json_dump('config.json', cog_config_dict)
+            ConfigUtil.json_dump('config.json', cog_config_dict)
         else:
             await ctx.channel.send('This extension is not currently running or does not exist.')
 
@@ -79,11 +68,11 @@ class ConfigCog(commands.Cog, name='cogs.condler'):
             self.running.append(cog)
             await ctx.channel.send(f'Extension "{cog}" has been loaded.')
             print(f'* Extension "{cog}" has been loaded.')
-            cog_config_dict = self.json_load('config.json')
+            cog_config_dict = ConfigUtil.json_load('config.json')
             for config, config_value in cog_config_dict['extension'].items():
                 if config == cog:
                     cog_config_dict['extension'][config] = True
-            self.json_dump('config.json', cog_config_dict)
+            ConfigUtil.json_dump('config.json', cog_config_dict)
         else:
             await ctx.channel.send('This extension is currently running or does not exist.')
 

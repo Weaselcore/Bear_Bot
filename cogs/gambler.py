@@ -5,7 +5,7 @@ from random import choice
 from discord.ext import commands
 
 import bblib.Embed
-from bblib.Util import get_member_str, get_member_object, message_channel
+from bblib.Util import get_member_str, get_member_object, message_channel, member_create
 from DatabaseWrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
@@ -82,24 +82,6 @@ def get_last_bank_time(member_id):
     return last_bank_time
 
 
-def member_create(ctx):
-    """
-    Is a predicate function for the @command.check decorator.
-    This ensures that the member that's being queried will have a row available.
-    :param ctx:
-    :return True: Will always be the case.
-    """
-    with DatabaseWrapper() as database:
-        members_to_check = [ctx.message.author.id]
-        members_to_check.extend(ctx.message.raw_mentions)
-        for member in members_to_check:  # Deposit amount.
-            cursor = database.execute(f"SELECT _id FROM gambler_stat WHERE _id={member}")
-            result = cursor.fetchall()
-            if not result:
-                database.execute(f"""INSERT INTO gambler_stat (_id, money_amount) values({member}, 0);""")
-    return True
-
-
 def update(list_to_change: list, member_id):
     # nickname, money_amount, last_stolen_id, last_redeemed, last_stolen_datetime, total_gained, total_lost
     with DatabaseWrapper() as database:
@@ -133,7 +115,7 @@ def update_money(member, money_to_update, add_wallet=True, banking=False, redeem
 
     if redeem:
         data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
-    if banking and add_wallet:
+    if banking and not add_wallet:
         data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
 
     update(data_tuple, member_id=member.id)
@@ -188,6 +170,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 last_stolen_name = "None"
 
+            # TODO create a mass query function to make this more efficient.
             embed = bblib.Embed.GamblerEmbed.gambler_stats(balance=get_money(member.id),
                                                            bank=get_bank(member.id),
                                                            last_redeemed=get_last_redeemed(member.id),
@@ -212,9 +195,9 @@ class GamblerCog(commands.Cog, name='gambler'):
             member = ctx.message.mentions[0]
 
         money, bank = get_money(member.id), get_bank(member.id)
-        title = "FETCHING BALANCE FROM BEAR BANK"
-        description = f'Balance: ${money} | Bank: ${bank}'
-        footer = f'Member: {get_member_str(member)}'
+        title = f"Fetching Balance for {get_member_str(member)}"
+        description = f'```Balance: ${money} | Bank: ${bank}```'
+        footer = f'Invoked by {get_member_str(ctx.message.author)} '
         embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
         await message_channel(ctx, embed=embed)
 
@@ -386,7 +369,7 @@ class GamblerCog(commands.Cog, name='gambler'):
 
             update_money(member, number_arg, add_wallet=True, banking=True)
 
-            title = "WITHDRAWING TO BEAR BANK..."
+            title = f"Withdrawing for {get_member_str(member)}..."
             description = f'You have withdrawn ${number_arg}.'
             footer = f'Balance: ${get_money(member.id)} | Bank: ${get_bank(member.id)}'
             embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
@@ -403,16 +386,6 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx, embed=embed)
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
-
-    '''
-    @commands.command(aliases=['bj', 'black', 'jack'])
-    @commands.check(member_create)
-    async def blackjack(self, ctx):
-        blackjack_session = Cards.BlackJackSession()
-        await message_channel(ctx, incoming_message=f'Your hand: {blackjack_session.get_hand_value()} : {blackjack_session.get_hand_cards()}')
-        await message_channel(ctx, incoming_message=f'Dealers hand: {blackjack_session.get_dealer_value()} : {blackjack_session.get_dealer_cards()}')
-        await message_channel(ctx, incoming_message=f'Win: {blackjack_session.conclusion()}')
-    '''
 
 
 def setup(bot):
