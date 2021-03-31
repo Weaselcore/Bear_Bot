@@ -133,7 +133,7 @@ def update_money(member, money_to_update, add_wallet=True, banking=False, redeem
 
     if redeem:
         data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
-    if banking and add_wallet:
+    if banking and not add_wallet:
         data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
 
     update(data_tuple, member_id=member.id)
@@ -326,9 +326,9 @@ class GamblerCog(commands.Cog, name='gambler'):
                     footer = f"New balance: ${get_money(member.id)}"
                 else:
                     money = get_money(member.id)
-                    update_money(member, round(money * 0.25), add_wallet=False)
-                    description = f"You have been caught. You've been fined ${round(money * 0.25)}. "
-                    footer = f"Balance: ${round(money * 0.75)} "
+                    update_money(member, round(money * 0.50), add_wallet=False)
+                    description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
+                    footer = f"Balance: ${round(money * 0.50)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
                        member_id=member.id)
 
