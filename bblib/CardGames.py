@@ -200,6 +200,9 @@ class BlackJackSession:
             return "```Push, no one wins.```"
         elif hand_value == 21 and self.get_hand(dealer=True) > 21:
             return "```Blackjack! You win!```"
+        elif 21 >= hand_value and self.get_hand(dealer=True) > 21:
+            self.gain_money()
+            return "```You have beaten the dealer!```"
         else:
             self.lose_money()
             return "```You have lost against the dealer!```"
