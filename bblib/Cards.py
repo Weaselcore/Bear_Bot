@@ -31,7 +31,6 @@ class Card:
     def get_image_name(self):
         value = self.get_name()
         suit = self.get_suit()
-        name_tuple = None
         if value == 'Ace':
             name_tuple = ('A', suit[:1],)
         elif value == 'Jack':
@@ -48,18 +47,13 @@ class Card:
         return str([self.get_name(), self.suit, ])
 
 
-# Example code to load images into an embed from local file.
-# embed = discord.Embed(title="Title", description="Desc", color=0x00ff00) #creates embed
-# file = discord.File("path/to/image/file.png", filename="image.png")
-# embed.set_image(url="attachment://image.png")
-# await ctx.send(file=file, embed=embed)
-
-
 class BlackJackSession:
     def __init__(self):
         self.bust = False
         self.stand = False
+        self.turn = 0
         self.hand, self.dealer = [], []
+        self.jackpot = 0
         self.deck = [Card(rank, suit) for suit in suits for rank in range(1, 14)] * 8
         for i in range(0, 5):
             shuffle(self.deck)
@@ -71,6 +65,7 @@ class BlackJackSession:
             self.dealer.append(self.deck.pop())
         else:
             self.hand.append(self.deck.pop())
+            self.turn += 1
 
     def get_hand(self, dealer=False):
         total, has_ace = 0, 0
@@ -89,12 +84,20 @@ class BlackJackSession:
         for i in range(1, has_ace):
             if total > 21:
                 total -= 10
-        if total > 21:
-            self.bust = True
         return total
 
-    def is_bust(self):
-        if self.bust is True:
+    def add_jackpot(self, bet: int):
+        pass
+
+    def gain_money(self):
+        pass
+
+    def lose_money(self):
+        pass
+
+    def check_bust(self):
+        if self.get_hand() > 21:
+            self.bust = True
             return True
         else:
             return False
@@ -105,41 +108,53 @@ class BlackJackSession:
     def is_stand(self) -> bool:
         return self.stand
 
-    def conclusion(self) -> tuple[bool, str]:
-        if self.get_hand() > self.get_hand(dealer=True) and self.get_hand(dealer=True) < 22:
-            return True, "You have beaten the dealer",
-        else:
-            return False, "You have lost to dealer",
-
     def get_hand_cards(self):
         return str(self.hand)
 
     def get_dealer_cards(self):
         return str(self.dealer)
 
-    def construct_image(self):
+    def construct_image(self, dealer=False):
         # Get base mat design.
         root_path = 'resources/card_images/'
         padding, old_position, card_count = 50, 0, 0
         base_mat = Image.open(root_path + 'card_mat.png')
         base_mat = base_mat.copy()
-        for card in self.hand:
-            file_name = card.get_image_name()
+
+        hand_to_check = self.hand if dealer is False else self.dealer
+
+        for card in hand_to_check:
+            if dealer and not self.bust and card.get_name() != 'Ace' and self.turn > 1:
+                file_name = 'red_back.png'
+            else:
+                file_name = card.get_image_name()
             card = Image.open(root_path + file_name)
             if card_count == 0:
                 position = ((old_position + padding), padding)
             else:
                 position = ((old_position + padding + card.width), padding)
-            base_mat.paste(card, position)
+            base_mat.paste(card, position, card)
             old_position = position[0]
             card_count += 1
         return base_mat
 
+    def check_condition(self):
+        hand_value = self.get_hand()
 
-
-
-
-
-
-
-
+        # Hand is bigger than 21; bust.
+        if hand_value > 21:
+            return False, "Bust, better luck next time.",
+        # Hand is 21 and lower than dealer.
+        elif hand_value == 21 and self.get_hand(dealer=True) < 22:
+            return True, "Blackjack! You win!"
+        # Hand is lower than 21 and higher than dealer.
+        if 21 >= hand_value >= self.get_hand(dealer=True):
+            return True, "You have beaten the dealer!"
+        # Hand is under 21 and has 5 cards.
+        if 21 >= hand_value >= self.get_hand(dealer=True) and len(self.hand) == 5:
+            return True, "Five Card Charlie! You win!"
+        # Hand is equal to dealer's, dealer is lower than 22.
+        elif self.get_hand() == self.get_hand(dealer=True) and self.get_hand(dealer=True) < 22:
+            return True, "You have beaten the dealer!"
+        else:
+            return False, "You have lost against the dealer!"

@@ -13,3 +13,5 @@ six>=1.14.0
 typing-extensions>=3.7.4.2
 websockets>=8.1
 yarl>=1.4.2
+pathlib>=1.0.1
+Pillow>=8.1.2

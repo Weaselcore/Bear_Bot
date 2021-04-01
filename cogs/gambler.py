@@ -5,7 +5,7 @@ from random import choice
 from discord.ext import commands
 
 import bblib.Embed
-from bblib.Util import get_member_str, get_member_object, message_channel, member_create
+from bblib.Util import get_member_str, get_member_object, message_channel, member_create, update_money
 from DatabaseWrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
@@ -89,38 +89,6 @@ def update(list_to_change: list, member_id):
         database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
 
 
-def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False):
-
-    wallet_amount, bank_amount = get_money(member.id), get_bank(member.id)
-    total_gained = get_total_gained(member.id)
-    total_lost = get_total_lost(member.id)
-
-    if banking:
-        if add_wallet:
-            wallet_amount = wallet_amount + money_to_update
-            bank_amount = bank_amount - money_to_update
-        else:
-            wallet_amount = wallet_amount - money_to_update
-            bank_amount = bank_amount + money_to_update
-    elif not banking:
-        if add_wallet:
-            total_gained = total_gained + money_to_update
-            wallet_amount = wallet_amount + money_to_update
-        else:
-            total_lost = total_lost + money_to_update
-            wallet_amount = wallet_amount - money_to_update
-
-    data_tuple = [('nickname', get_member_str(member)), ('money_amount', wallet_amount),
-                  ('total_gained', total_gained), ('total_lost', total_lost), ('bank_amount', bank_amount)]
-
-    if redeem:
-        data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
-    if banking and not add_wallet:
-        data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
-
-    update(data_tuple, member_id=member.id)
-
-
 class GamblerCog(commands.Cog, name='gambler'):
     def __init__(self, bot):
         self.bot = bot
@@ -158,28 +126,27 @@ class GamblerCog(commands.Cog, name='gambler'):
         Mentioning someone will return theirs, no mention will return your information.
         :param ctx:
         """
-        with DatabaseWrapper() as database:
-            if len(ctx.message.mentions) != 0:
-                member = ctx.message.mentions[0]
-            else:
-                member = ctx.message.author
+        if len(ctx.message.mentions) != 0:
+            member = ctx.message.mentions[0]
+        else:
+            member = ctx.message.author
 
-            last_stolen_member_object = get_member_object(ctx, get_stolen_id(member.id))
-            if last_stolen_member_object is not None:
-                last_stolen_name = last_stolen_member_object.name if last_stolen_member_object.nick is None else last_stolen_member_object.nick
-            else:
-                last_stolen_name = "None"
+        last_stolen_member_object = get_member_object(ctx, get_stolen_id(member.id))
+        if last_stolen_member_object is not None:
+            last_stolen_name = last_stolen_member_object.name if last_stolen_member_object.nick is None else last_stolen_member_object.nick
+        else:
+            last_stolen_name = "None"
 
-            # TODO create a mass query function to make this more efficient.
-            embed = bblib.Embed.GamblerEmbed.gambler_stats(balance=get_money(member.id),
-                                                           bank=get_bank(member.id),
-                                                           last_redeemed=get_last_redeemed(member.id),
-                                                           last_mugged=last_stolen_name,
-                                                           when_mugged=get_stolen_time(member.id),
-                                                           total_gained=get_total_gained(member.id),
-                                                           total_lost=get_total_lost(member.id),
-                                                           member=get_member_str(member))
-            await message_channel(ctx, embed=embed)
+        # TODO create a mass query function to make this more efficient.
+        embed = bblib.Embed.GamblerEmbed.gambler_stats(balance=get_money(member.id),
+                                                       bank=get_bank(member.id),
+                                                       last_redeemed=get_last_redeemed(member.id),
+                                                       last_mugged=last_stolen_name,
+                                                       when_mugged=get_stolen_time(member.id),
+                                                       total_gained=get_total_gained(member.id),
+                                                       total_lost=get_total_lost(member.id),
+                                                       member=get_member_str(member))
+        await message_channel(ctx, embed=embed)
 
     @commands.command(aliases=['balance', 'bal'])
     @commands.check(member_create)
