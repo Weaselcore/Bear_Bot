@@ -16,7 +16,8 @@ async def generate_image_message(ctx, session_info, dealer=False):
         image_file = discord.File(fp=image_binary, filename='image.png')
         embed = Embed.BlackJackEmbed.generated_image(
             title=title,
-            description=f'Value: ```{hand_value}```')
+            description=f'Value: ```{hand_value}```',
+            footer=f'Jackpot: ${session_info.jackpot}')
         await ctx.message.channel.send(file=image_file, embed=embed)
 
 
@@ -45,10 +46,10 @@ class BlackJackCog(commands.Cog, name='blackjack'):
     async def blackjack(self, ctx):
 
         # Create a blackjack session.
-        blackjack_session = Cards.BlackJackSession()
+        blackjack_session = Cards.BlackJackSession(ctx.message.author)
 
         # Recursive function that will loop till an outcome is created.
-        async def return_outcome(session) -> tuple[bool, str]:
+        async def return_outcome(session) -> str:
 
             async def send_response(session_info):
                 # Print cards.
@@ -60,12 +61,21 @@ class BlackJackCog(commands.Cog, name='blackjack'):
                 # Wait for user response.
                 msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
 
-                if msg.clean_content.lower() == 'hit me':
-                    pass
-                elif msg.clean_content.lower() == 'stand':
-                    session_info.set_stand()
-                else:
-                    await message_channel(ctx, "Please type an appropriate option.")
+                try:
+                    if msg.clean_content.lower() == 'double':
+                        session_info.double_down()
+                    elif msg.clean_content.lower() == 'stand':
+                        session_info.set_stand()
+                    elif int(msg.clean_content.lower()):
+                        session_info.add_jackpot(int(msg.clean_content.lower()))
+                        await message_channel(ctx, f"You've added {int(msg.clean_content.lower())} to the jackpot.")
+                    else:
+                        await message_channel(
+                            ctx,
+                            "Please type an appropriate option. A number to bet, double or hit.")
+                        await retrieve_message(session_info)
+                except ValueError:
+                    await message_channel(ctx, "Please type a valid number for a bet.")
                     await retrieve_message(session_info)
 
             # Start function with dealing.
@@ -76,7 +86,8 @@ class BlackJackCog(commands.Cog, name='blackjack'):
             is_bust = session.check_bust()
             if is_bust:
                 await send_response(session)
-                return False, "Bust, better luck next time.",
+                session.lose_money()
+                return "Bust, better luck next time."
 
             # Print card result.
             await send_response(session)
@@ -91,7 +102,7 @@ class BlackJackCog(commands.Cog, name='blackjack'):
                 return await return_outcome(session)
 
         final_result = await return_outcome(blackjack_session)
-        await message_channel(ctx, final_result[1])
+        await message_channel(ctx, final_result)
 
 
 def setup(bot):

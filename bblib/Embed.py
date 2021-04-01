@@ -60,7 +60,8 @@ class GamblerEmbed:
 class BlackJackEmbed:
 
     @staticmethod
-    def generated_image(title, description):
+    def generated_image(title: str, description: str, footer: str):
         embed = discord.Embed(title=f"{title}", color=0x016d03, description=description)
         embed.set_image(url="attachment://image.png")
+        embed.set_footer(text=footer)
         return embed

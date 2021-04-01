@@ -5,7 +5,7 @@ from random import choice
 from discord.ext import commands
 
 import bblib.Embed
-from bblib.Util import get_member_str, get_member_object, message_channel, member_create, update_money
+from bblib.Util import get_member_str, get_member_object, message_channel, member_create
 from DatabaseWrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
@@ -87,6 +87,37 @@ def update(list_to_change: list, member_id):
     with DatabaseWrapper() as database:
         values = list(zip(*list_to_change))
         database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
+
+
+def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False):
+    wallet_amount, bank_amount = get_money(member.id), get_bank(member.id)
+    total_gained = get_total_gained(member.id)
+    total_lost = get_total_lost(member.id)
+
+    if banking:
+        if add_wallet:
+            wallet_amount = wallet_amount + money_to_update
+            bank_amount = bank_amount - money_to_update
+        else:
+            wallet_amount = wallet_amount - money_to_update
+            bank_amount = bank_amount + money_to_update
+    elif not banking:
+        if add_wallet:
+            total_gained = total_gained + money_to_update
+            wallet_amount = wallet_amount + money_to_update
+        else:
+            total_lost = total_lost + money_to_update
+            wallet_amount = wallet_amount - money_to_update
+
+    data_tuple = [('nickname', get_member_str(member)), ('money_amount', wallet_amount),
+                  ('total_gained', total_gained), ('total_lost', total_lost), ('bank_amount', bank_amount)]
+
+    if redeem:
+        data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
+    if banking and not add_wallet:
+        data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
+
+    update(data_tuple, member_id=member.id)
 
 
 class GamblerCog(commands.Cog, name='gambler'):

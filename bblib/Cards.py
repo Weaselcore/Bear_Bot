@@ -1,6 +1,9 @@
 from random import shuffle
 from PIL import Image
 
+from bblib import Util
+from cogs.gambler import update_money
+
 suits = ("Spades", "Hearts", "Clubs", "Diamonds")
 
 
@@ -48,15 +51,18 @@ class Card:
 
 
 class BlackJackSession:
-    def __init__(self):
+    def __init__(self, member):
+        self.member = member
         self.bust = False
         self.stand = False
         self.turn = 0
         self.hand, self.dealer = [], []
         self.jackpot = 0
+
         self.deck = [Card(rank, suit) for suit in suits for rank in range(1, 14)] * 8
         for i in range(0, 5):
             shuffle(self.deck)
+
         self.deal()
         self.deal(dealer=True)
 
@@ -87,13 +93,17 @@ class BlackJackSession:
         return total
 
     def add_jackpot(self, bet: int):
-        pass
+        self.jackpot += bet
 
     def gain_money(self):
-        pass
+        update_money(self.member.id, self.jackpot, add_wallet=True, banking=False)
 
     def lose_money(self):
-        pass
+        update_money(self.member.id, self.jackpot, add_wallet=False, banking=False)
+
+    def double_down(self):
+        self.jackpot = self.jackpot * 2
+        self.stand = True
 
     def check_bust(self):
         if self.get_hand() > 21:
@@ -143,18 +153,23 @@ class BlackJackSession:
 
         # Hand is bigger than 21; bust.
         if hand_value > 21:
-            return False, "Bust, better luck next time.",
+            self.lose_money()
+            return "Bust, better luck next time.",
         # Hand is 21 and lower than dealer.
         elif hand_value == 21 and self.get_hand(dealer=True) < 22:
-            return True, "Blackjack! You win!"
+            self.gain_money()
+            return "Blackjack! You win!"
         # Hand is lower than 21 and higher than dealer.
         if 21 >= hand_value >= self.get_hand(dealer=True):
-            return True, "You have beaten the dealer!"
+            self.gain_money()
+            return "You have beaten the dealer!"
         # Hand is under 21 and has 5 cards.
         if 21 >= hand_value >= self.get_hand(dealer=True) and len(self.hand) == 5:
-            return True, "Five Card Charlie! You win!"
+            self.gain_money()
+            return "Five Card Charlie! You win!"
         # Hand is equal to dealer's, dealer is lower than 22.
         elif self.get_hand() == self.get_hand(dealer=True) and self.get_hand(dealer=True) < 22:
-            return True, "You have beaten the dealer!"
+            return "Draw, no one wins."
         else:
-            return False, "You have lost against the dealer!"
+            self.lose_money()
+            return "You have lost against the dealer!"
