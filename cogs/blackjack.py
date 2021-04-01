@@ -24,7 +24,7 @@ async def generate_image_message(ctx, session_info, dealer=False):
         embed = Embed.BlackJackEmbed.generated_image(
             title=title,
             description=f'Value: ```{hand_value}```',
-            footer=f'Session: {get_member_str(ctx.message.author)} | Jackpot: ${session_info.jackpot}',
+            footer=f'Session: {get_member_str(ctx.message.author)} | Jackpot: ${session_info.jackpot * 2}',
             hidden=hidden,
             dealer=dealer)
         await ctx.message.channel.send(file=image_file, embed=embed)
