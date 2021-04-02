@@ -56,6 +56,7 @@ class BlackJackSession:
         self.bust = False
         self.stand = False
         self.double = False
+        self.timeout = False
         self.turn = 0
         self.hand, self.dealer = [], []
         self.jackpot = 0
@@ -130,6 +131,12 @@ class BlackJackSession:
     def is_stand(self) -> bool:
         return self.stand
 
+    def set_timeout(self) -> None:
+        self.timeout = True
+
+    def get_timeout(self) -> bool:
+        return self.timeout
+
     def set_double(self) -> None:
         self.double = True
 
@@ -175,22 +182,24 @@ class BlackJackSession:
         # Hand is bigger than 21; bust.
         if hand_value > 21:
             self.lose_money()
-            return "Bust, better luck next time."
+            return "```Bust, better luck next time.```"
         # Hand is 21 and lower than dealer.
         elif hand_value == 21 and self.get_hand(dealer=True) < 22:
             self.gain_money()
-            return "Blackjack! You win!"
+            return "```Blackjack! You win!```"
         # Hand is lower than 21 and higher than dealer.
         elif 21 >= hand_value > self.get_hand(dealer=True):
             self.gain_money()
-            return "You have beaten the dealer!"
+            return "```You have beaten the dealer!```"
         # Hand is under 21 and has 5 cards.
         elif 21 >= hand_value >= self.get_hand(dealer=True) and len(self.hand) == 5:
             self.gain_money()
-            return "Five Card Charlie! You win!"
+            return "```Five Card Charlie! You win!```"
         # Hand is equal to dealer's, dealer is lower than 22.
         elif self.get_hand() == self.get_hand(dealer=True) and self.get_hand() > 22:
-            return "Push, no one wins."
+            return "```Push, no one wins.```"
+        elif hand_value == 21 and self.get_hand(dealer=True) > 21:
+            return "```Blackjack! You win!```"
         else:
             self.lose_money()
-            return "You have lost against the dealer!"
+            return "```You have lost against the dealer!```"

@@ -125,9 +125,9 @@ class GamblerCog(commands.Cog, name='gambler'):
         if last_redeemed is None or (now - last_redeemed) > datetime.timedelta(hours=1):
             update_money(member, 100, add_wallet=True, banking=False, redeem=True)
 
-            title = ("ANOTHER STIMULUS CHEQUE???",)
+            title = ("THAT'S ANOTHER HUNNIT!",)
             embed = bblib.Embed.GamblerEmbed.general(
-                title + ("You have redeemed $100.", f"Balance is now ${money + 100}."))
+                title + (f"```Wallet balance is now ${money + 100}.```", f"Invoked by {get_member_str(member)}"))
             await message_channel(ctx, embed=embed)
         else:
             time_remaining = datetime.timedelta(hours=1) - (now - last_redeemed)

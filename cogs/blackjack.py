@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 
 import discord
@@ -36,30 +37,32 @@ async def send_response(ctx, session_info):
 
 
 async def retrieve_message(ctx, bot, session_info):
-    # Wait for user response.
-    msg = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
 
     try:
-        if msg.clean_content.lower() == 'double':
-            session_info.set_double()
-        elif msg.clean_content.lower() == 'stand':
-            session_info.set_stand()
-        elif int(msg.clean_content.lower()):
-            amount_to_bet = int(msg.clean_content.lower())
-            success = session_info.add_jackpot(amount_to_bet)
-            if success:
-                await message_channel(ctx, f"You've added {int(msg.clean_content.lower())} to the jackpot.")
-            else:
+        # Wait for user response.
+        msg = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author, timeout=5)
+
+        print(msg)
+
+        try:
+            if msg.clean_content.lower() == 'double':
+                session_info.set_double()
+            elif msg.clean_content.lower() == 'stand':
                 session_info.set_stand()
-                await message_channel(ctx, f"You've run out of money to add to the jackpot.")
-        else:
-            await message_channel(
-                ctx,
-                "Please type an appropriate option. A number to bet, double or stand.")
+            elif int(msg.clean_content.lower()):
+                amount_to_bet = int(msg.clean_content.lower())
+                success = session_info.add_jackpot(amount_to_bet)
+                if success:
+                    await message_channel(ctx, f"```You've added {int(msg.clean_content.lower())} to the jackpot.```")
+                else:
+                    session_info.set_stand()
+                    await message_channel(ctx, "```You've run out of money to add to the jackpot.```")
+        except ValueError:
+            await message_channel(ctx,
+                                  "```Please type an appropriate option. A 'number' to bet, 'double' or 'stand'.```")
             await retrieve_message(ctx, bot, session_info)
-    except ValueError:
-        await message_channel(ctx, "Please type a valid number for a bet.")
-        await retrieve_message(ctx, bot, session_info)
+    except asyncio.TimeoutError:
+        session_info.set_timeout()
 
 
 class BlackJackCog(commands.Cog, name='blackjack'):
@@ -107,6 +110,9 @@ class BlackJackCog(commands.Cog, name='blackjack'):
                     session.lose_money()
                     await send_response(ctx, session)
                     return session.check_condition()
+                elif session.get_timeout():
+                    session.lose_money()
+                    return "```Your session has timed out. Jackpot was removed from your wallet as penalty.```"
                 else:
                     # Print card result.
                     await send_response(ctx, session)
@@ -122,7 +128,7 @@ class BlackJackCog(commands.Cog, name='blackjack'):
 
             await message_channel(ctx, await return_outcome(blackjack_session))
         else:
-            await message_channel(ctx, "You must have $25 or more to play Blackjack.")
+            await message_channel(ctx, "```You must have $25 or more to play Blackjack.```")
 
 
 def setup(bot):
