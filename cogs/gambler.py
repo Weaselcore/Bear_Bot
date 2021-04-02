@@ -298,7 +298,8 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
 
-    @commands.command(aliases=["quit", "shutdown"])
+    @commands.command()
+    @commands.check(member_create)
     @commands.has_permissions(administrator=True)
     async def give(self, ctx, arg: int):
         if len(ctx.message.mentions) == 0:
