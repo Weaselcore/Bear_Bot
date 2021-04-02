@@ -46,12 +46,24 @@ class GamblerEmbed:
             embed = discord.Embed(title="LEADERBOARD - TOP 5", color=0x047dd5)
             count = 1
             for element in list_of_args:
-                embed.add_field(name='*Rank*:  ', value=f'```#{count}```', inline=True)
-                embed.add_field(name="*Name*: ", value=f'```   {element[0]}   ```', inline=True)
-                embed.add_field(
-                    name="*Amount*: ", value=f'```Wallet: ${element[1]} Bank: ${element[2]}```', inline=True
-                )
+                embed.add_field(name=f'#{count}', value=f'```{element[0]}```', inline=True)
+                embed.add_field(name="Wallet:", value=f'```${element[1]}```', inline=True)
+                embed.add_field(name="Bank:", value=f'```${element[2]}```', inline=True)
                 count += 1
             return embed
         else:
             return None
+
+
+class BlackJackEmbed:
+
+    @staticmethod
+    def generated_image(title: str, description: str, footer: str, hidden=True, dealer=False):
+        if hidden and dealer:
+            embed = discord.Embed(title=f"{title}", color=0x016d03)
+        else:
+            embed = discord.Embed(title=f"{title}", color=0x016d03, description=description)
+
+        embed.set_image(url="attachment://image.png")
+        embed.set_footer(text=footer)
+        return embed
