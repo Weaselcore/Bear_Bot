@@ -3,8 +3,8 @@ from io import BytesIO
 import discord
 from discord.ext import commands
 
-from bblib import Cards, Embed
-from bblib.Util import message_channel, member_create
+from bblib import CardGames, Embed
+from bblib.Util import message_channel, member_create, get_member_str, get_money
 
 
 async def generate_image_message(ctx, session_info, dealer=False):
@@ -14,11 +14,52 @@ async def generate_image_message(ctx, session_info, dealer=False):
         title = "Your Hand:" if dealer is False else "Dealer's Hand:"
         hand_value = session_info.get_hand() if dealer is False else session_info.get_hand(dealer=True)
         image_file = discord.File(fp=image_binary, filename='image.png')
+
+        if session_info.is_stand() or session_info.check_bust():
+            hidden = False
+        else:
+            hidden = True
+
         embed = Embed.BlackJackEmbed.generated_image(
             title=title,
             description=f'Value: ```{hand_value}```',
-            footer=f'Jackpot: ${session_info.jackpot}')
+            footer=f'Session: {get_member_str(ctx.message.author)} | Jackpot: ${session_info.jackpot}',
+            hidden=hidden,
+            dealer=dealer)
         await ctx.message.channel.send(file=image_file, embed=embed)
+
+
+async def send_response(ctx, session_info):
+    # Print cards.
+    await generate_image_message(ctx, session_info)
+    await generate_image_message(ctx, session_info, dealer=True)
+
+
+async def retrieve_message(ctx, bot, session_info):
+    # Wait for user response.
+    msg = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
+
+    try:
+        if msg.clean_content.lower() == 'double':
+            session_info.set_double()
+        elif msg.clean_content.lower() == 'stand':
+            session_info.set_stand()
+        elif int(msg.clean_content.lower()):
+            amount_to_bet = int(msg.clean_content.lower())
+            success = session_info.add_jackpot(amount_to_bet)
+            if success:
+                await message_channel(ctx, f"You've added {int(msg.clean_content.lower())} to the jackpot.")
+            else:
+                session_info.set_stand()
+                await message_channel(ctx, f"You've run out of money to add to the jackpot.")
+        else:
+            await message_channel(
+                ctx,
+                "Please type an appropriate option. A number to bet, double or stand.")
+            await retrieve_message(ctx, bot, session_info)
+    except ValueError:
+        await message_channel(ctx, "Please type a valid number for a bet.")
+        await retrieve_message(ctx, bot, session_info)
 
 
 class BlackJackCog(commands.Cog, name='blackjack'):
@@ -36,7 +77,7 @@ class BlackJackCog(commands.Cog, name='blackjack'):
     
     Betting Rules:
     
-    You can bet 25, 50, 75 each turn. When you win you gain double back.
+    Initial bet is 25 and then each turn you can bet any amount. When you win you gain double back.
     If you have a soft hand, you can double down once to try to win on the next turn.
     """
 
@@ -45,64 +86,43 @@ class BlackJackCog(commands.Cog, name='blackjack'):
     @commands.max_concurrency(1, per=commands.BucketType.default, wait=False)
     async def blackjack(self, ctx):
 
-        # Create a blackjack session.
-        blackjack_session = Cards.BlackJackSession(ctx.message.author)
+        bank = get_money(ctx.author.id)
+        if get_money(ctx.author.id) >= 25:
+            # Create a blackjack session.
+            blackjack_session = CardGames.BlackJackSession(ctx.message.author)
 
-        # Recursive function that will loop till an outcome is created.
-        async def return_outcome(session) -> str:
+            # Recursive function that will loop till an outcome is created.
+            async def return_outcome(session) -> str:
 
-            async def send_response(session_info):
-                # Print cards.
-                await generate_image_message(ctx, session_info)
-                await generate_image_message(ctx, session_info, dealer=True)
+                # Start function with dealing.
+                session.deal()
+                session.deal(dealer=True)
 
-            async def retrieve_message(session_info):
+                # If the previous input is a certain condition, this will cut the flow early.
+                if session.get_double():
+                    session.double_down()
+                    await send_response(ctx, session)
+                    return session.check_condition()
+                elif session.check_bust():
+                    session.lose_money()
+                    await send_response(ctx, session)
+                    return session.check_condition()
+                else:
+                    # Print card result.
+                    await send_response(ctx, session)
+                    # Get user input.
+                    await retrieve_message(ctx, self.bot, session)
 
-                # Wait for user response.
-                msg = await self.bot.wait_for('message', check=lambda message: message.author == ctx.message.author)
+                # Put base condition here. Natural, Five Card Charlie, Push or Bust.
+                if session.is_stand():
+                    await send_response(ctx, session)
+                    return session.check_condition()
+                else:
+                    return await return_outcome(session)
 
-                try:
-                    if msg.clean_content.lower() == 'double':
-                        session_info.double_down()
-                    elif msg.clean_content.lower() == 'stand':
-                        session_info.set_stand()
-                    elif int(msg.clean_content.lower()):
-                        session_info.add_jackpot(int(msg.clean_content.lower()))
-                        await message_channel(ctx, f"You've added {int(msg.clean_content.lower())} to the jackpot.")
-                    else:
-                        await message_channel(
-                            ctx,
-                            "Please type an appropriate option. A number to bet, double or hit.")
-                        await retrieve_message(session_info)
-                except ValueError:
-                    await message_channel(ctx, "Please type a valid number for a bet.")
-                    await retrieve_message(session_info)
-
-            # Start function with dealing.
-            session.deal()
-            session.deal(dealer=True)
-
-            # Check if bust.
-            is_bust = session.check_bust()
-            if is_bust:
-                await send_response(session)
-                session.lose_money()
-                return "Bust, better luck next time."
-
-            # Print card result.
-            await send_response(session)
-
-            # Get user response.
-            await retrieve_message(session)
-
-            # Put base condition here. Natural, Five Card Charlie, Push or Bust.
-            if session.is_stand():
-                return session.check_condition()
-            else:
-                return await return_outcome(session)
-
-        final_result = await return_outcome(blackjack_session)
-        await message_channel(ctx, final_result)
+            await message_channel(ctx, await return_outcome(blackjack_session))
+        else:
+            await message_channel(ctx, "You must have $25 or more to play Blackjack.")
 
 
 def setup(bot):
