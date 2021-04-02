@@ -131,6 +131,9 @@ def update_money(member, money_to_update, add_wallet=True, banking=False, redeem
         else:
             total_lost = total_lost + money_to_update
             wallet_amount = wallet_amount - money_to_update
+            # TODO Dirty hack, implement better validation with discord py testing library.
+            if wallet_amount < 0:
+                wallet_amount = 0
 
     data_tuple = [('nickname', get_member_str(member)), ('money_amount', wallet_amount),
                   ('total_gained', total_gained), ('total_lost', total_lost), ('bank_amount', bank_amount)]
