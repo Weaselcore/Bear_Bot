@@ -40,7 +40,7 @@ async def retrieve_message(ctx, bot, session_info):
 
     try:
         # Wait for user response.
-        msg = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author, timeout=5)
+        msg = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author, timeout=30)
 
         print(msg)
 
