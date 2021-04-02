@@ -219,9 +219,9 @@ class GamblerCog(commands.Cog, name='gambler'):
                     footer = f"New balance: ${get_money(member.id)}"
                 else:
                     money = get_money(member.id)
-                    update_money(member, round(money * 0.25), add_wallet=False)
-                    description = f"You have been caught. You've been fined ${round(money * 0.25)}. "
-                    footer = f"Balance: ${round(money * 0.75)} "
+                    update_money(member, round(money * 0.50), add_wallet=False)
+                    description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
+                    footer = f"Balance: ${round(money * 0.50)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
                        member_id=member.id)
 
@@ -296,7 +296,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx, embed=embed)
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
-
+                
 
 def setup(bot):
     bot.add_cog(GamblerCog(bot))
