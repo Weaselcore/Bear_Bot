@@ -298,18 +298,18 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
 
+    # TODO Make this not add to stats.
     @commands.command()
     @commands.check(member_create)
     @commands.has_permissions(administrator=True)
-    async def give(self, ctx, arg: int):
+    async def give(self, ctx):
         if len(ctx.message.mentions) == 0:
             await message_channel(ctx, '```You need to mention someone to use this command.```')
         else:
             member = ctx.message.mentions[0]
             name = get_member_str(member)
             wallet_before = get_money(member.id)
-            await message_channel(ctx, )
-            update_money(member, arg, add_wallet=True, banking=False, redeem=False)
+            update_money(member, int(ctx.message.clean_content.split(" ")[-1]), add_wallet=True, banking=False, redeem=False)
             wallet_after = get_money(member.id)
             await message_channel(ctx, f"```Updated {name}'s wallet: ${wallet_before} -> ${wallet_after}```")
 
