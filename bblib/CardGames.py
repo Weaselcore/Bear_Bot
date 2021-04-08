@@ -134,7 +134,7 @@ class BlackJackSession:
         else:
             return False
 
-    def get_push(self):
+    def check_push(self):
         if self.get_hand() > 21 and self.get_hand(dealer=True) > 21:
             self.push = True
             return True
