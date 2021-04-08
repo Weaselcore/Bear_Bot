@@ -172,65 +172,65 @@ class GamblerCog(commands.Cog, name='gambler'):
     @commands.command()
     @commands.check(member_create)
     async def steal(self, ctx):
-        await message_channel(ctx, "```Function is disabled due to bugs.```")
-    #     """
-    #     Will steal from another member if mentioned, cannot steal from the same member twice.
-    #     If player's are "caught", they will be fined.
-    #     :param ctx:
-    #     :return:
-    #     """
-    #
-    #     def get_last_stolen(member_id):
-    #         with DatabaseWrapper() as database:
-    #             cursor = database.execute(f"SELECT last_stolen_id FROM gambler_stat WHERE _id = {member_id}")
-    #             return cursor.fetchall()[0][0]
-    #
-    #     member, mention = ctx.message.author, ctx.message.mentions
-    #     last_stolen = get_last_stolen(member.id)
-    #
-    #     if len(mention) == 0:
-    #         await message_channel(ctx, incoming_message="You have to mention someone to steal.")
-    #     elif mention[0] == member:
-    #         await message_channel(ctx, incoming_message="You just stole from yourself, idiot.")
-    #     elif get_money(member.id) == 0:
-    #         await message_channel(ctx, incoming_message="You cannot steal if you do not have money!")
-    #         pass
-    #     elif mention[0].id == 450904080211116032:
-    #         money = get_money(member.id)
-    #         update_money(member, money, add_wallet=False)
-    #         await message_channel(ctx,
-    #                               incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
-    #                                                "penniless and homeless.")
-    #     elif last_stolen is not None and int(last_stolen) == mention[0].id:
-    #         await message_channel(ctx, "You cannot target the same person again!")
-    #         pass
-    #     else:
-    #         # This prevents people with low balance stealing all from high balance people.
-    #         if get_money(member.id) >= get_money(mention[0].id):
-    #             target_money = get_money(mention[0].id)
-    #         else:
-    #             target_money = get_money(member.id)
-    #
-    #         title = "OOOH YOU STEALIN"
-    #         if target_money is not None and target_money != 0:
-    #             if fifty():
-    #                 update_money(mention[0], target_money, add_wallet=False)
-    #                 update_money(member, target_money)
-    #                 description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
-    #                 footer = f"New balance: ${get_money(member.id)}"
-    #             else:
-    #                 money = get_money(member.id)
-    #                 update_money(member, round(money * 0.50), add_wallet=False)
-    #                 description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
-    #                 footer = f"Balance: ${round(money * 0.50)} "
-    #             update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
-    #                    member_id=member.id)
-    #
-    #             embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
-    #             await message_channel(ctx, embed=embed)
-    #         else:
-    #             await message_channel(ctx,
-    #                                   incoming_message="You cannot steal from people who have nothing. How heartless.")
+        # await message_channel(ctx, "```Function is disabled due to bugs.```")
+        """
+        Will steal from another member if mentioned, cannot steal from the same member twice.
+        If player's are "caught", they will be fined.
+        :param ctx:
+        :return:
+        """
+
+        def get_last_stolen(member_id):
+            with DatabaseWrapper() as database:
+                cursor = database.execute(f"SELECT last_stolen_id FROM gambler_stat WHERE _id = {member_id}")
+                return cursor.fetchall()[0][0]
+
+        member, mention = ctx.message.author, ctx.message.mentions
+        last_stolen = get_last_stolen(member.id)
+
+        if len(mention) == 0:
+            await message_channel(ctx, incoming_message="You have to mention someone to steal.")
+        elif mention[0] == member:
+            await message_channel(ctx, incoming_message="You just stole from yourself, idiot.")
+        elif get_money(member.id) == 0:
+            await message_channel(ctx, incoming_message="You cannot steal if you do not have money!")
+            pass
+        elif mention[0].id == 450904080211116032:
+            money = get_money(member.id)
+            update_money(member, money, add_wallet=False)
+            await message_channel(ctx,
+                                  incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
+                                                   "penniless and homeless.")
+        elif last_stolen is not None and int(last_stolen) == mention[0].id:
+            await message_channel(ctx, "You cannot target the same person again!")
+            pass
+        else:
+            # This prevents people with low balance stealing all from high balance people.
+            if get_money(member.id) >= get_money(mention[0].id):
+                target_money = get_money(mention[0].id)
+            else:
+                target_money = get_money(member.id)
+
+            title = "OOOH YOU STEALIN"
+            if target_money is not None and target_money != 0:
+                if fifty():
+                    update_money(mention[0], target_money, add_wallet=False)
+                    update_money(member, target_money)
+                    description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
+                    footer = f"New balance: ${get_money(member.id)}"
+                else:
+                    money = get_money(member.id)
+                    update_money(member, round(money * 0.50), add_wallet=False)
+                    description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
+                    footer = f"Balance: ${round(money * 0.50)} "
+                update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
+                       member_id=member.id)
+
+                embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
+                await message_channel(ctx, embed=embed)
+            else:
+                await message_channel(ctx,
+                                      incoming_message="You cannot steal from people who have nothing. How heartless.")
 
     # TODO clean up messaging
     @commands.command(aliases=['bank'])
