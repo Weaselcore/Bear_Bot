@@ -56,6 +56,8 @@ class BlackJackSession:
         self.bust = False
         self.stand = False
         self.double = False
+        self.push = False
+        self.five_cards = False
         self.timeout = False
         self.turn = 0
         self.hand, self.dealer = [], []
@@ -125,6 +127,20 @@ class BlackJackSession:
         else:
             return False
 
+    def five_card_charlie(self):
+        if len(self.hand) == 5 and self.get_hand() <= 21:
+            self.five_cards = True
+            return True
+        else:
+            return False
+
+    def get_push(self):
+        if self.get_hand() > 21 and self.get_hand(dealer=True) > 21:
+            self.push = True
+            return True
+        else:
+            return False
+
     def set_stand(self) -> None:
         self.stand = True
 
@@ -161,7 +177,7 @@ class BlackJackSession:
         first_card = True
 
         for card in hand_to_check:
-            if dealer and (not self.check_bust() and not self.is_stand()) and first_card:
+            if dealer and (not self.check_bust() and not self.is_stand() and not self.five_card_charlie()) and first_card:
                 file_name = 'red_back.png'
             else:
                 file_name = card.get_image_name()
@@ -179,8 +195,11 @@ class BlackJackSession:
     def check_condition(self):
         hand_value = self.get_hand()
 
+        # If both hands bust.
+        if hand_value > 21 and self.get_hand(dealer=True) > 21:
+            return "```Push, no one wins.```"
         # Hand is bigger than 21; bust.
-        if hand_value > 21:
+        elif hand_value > 21:
             self.lose_money()
             return "```Bust, better luck next time.```"
         # Hand is 21 and lower than dealer.
@@ -196,13 +215,17 @@ class BlackJackSession:
             self.gain_money()
             return "```Five Card Charlie! You win!```"
         # Hand is equal to dealer's, dealer is lower than 22.
-        elif self.get_hand() == self.get_hand(dealer=True) and self.get_hand() > 22:
+        elif hand_value == self.get_hand(dealer=True) and self.get_hand() > 22:
             return "```Push, no one wins.```"
+        # If player has 21 and dealer is busts.
         elif hand_value == 21 and self.get_hand(dealer=True) > 21:
             return "```Blackjack! You win!```"
+        # If hand is les or equal to 21 and dealer is over 21.
         elif 21 >= hand_value and self.get_hand(dealer=True) > 21:
             self.gain_money()
             return "```You have beaten the dealer!```"
+        elif self.five_cards is True:
+            return "```Five Card Charlie, you have won!```"
         else:
             self.lose_money()
             return "```You have lost against the dealer!```"

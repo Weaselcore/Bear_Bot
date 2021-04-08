@@ -16,7 +16,7 @@ async def generate_image_message(ctx, session_info, dealer=False):
         hand_value = session_info.get_hand() if dealer is False else session_info.get_hand(dealer=True)
         image_file = discord.File(fp=image_binary, filename='image.png')
 
-        if session_info.is_stand() or session_info.check_bust():
+        if session_info.is_stand() or session_info.check_bust() or session_info.five_card_charlie():
             hidden = False
         else:
             hidden = True
@@ -41,8 +41,6 @@ async def retrieve_message(ctx, bot, session_info):
     try:
         # Wait for user response.
         msg = await bot.wait_for('message', check=lambda message: message.author == ctx.message.author, timeout=30)
-
-        print(msg)
 
         try:
             if msg.clean_content.lower() == 'double':
@@ -102,12 +100,20 @@ class BlackJackCog(commands.Cog, name='blackjack'):
                 session.deal(dealer=True)
 
                 # If the previous input is a certain condition, this will cut the flow early.
+                # Put base condition here. Natural, Five Card Charlie, Push or Bust.
                 if session.get_double():
                     session.double_down()
                     await send_response(ctx, session)
                     return session.check_condition()
+                if session.check_push():
+                    await send_response(ctx, session)
+                    return session.check_condition()
                 elif session.check_bust():
                     session.lose_money()
+                    await send_response(ctx, session)
+                    return session.check_condition()
+                elif session.five_card_charlie():
+                    session.gain_money()
                     await send_response(ctx, session)
                     return session.check_condition()
                 elif session.get_timeout():
@@ -119,7 +125,6 @@ class BlackJackCog(commands.Cog, name='blackjack'):
                     # Get user input.
                     await retrieve_message(ctx, self.bot, session)
 
-                # Put base condition here. Natural, Five Card Charlie, Push or Bust.
                 if session.is_stand():
                     await send_response(ctx, session)
                     return session.check_condition()
