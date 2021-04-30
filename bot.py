@@ -11,6 +11,8 @@ from pathlib import Path
 from discord.ext import commands
 
 # Added in 1.5 to enable members cache.
+import bblib.Util
+
 intents = discord.Intents.default()
 intents.members = True
 intents.guilds = True
@@ -72,6 +74,13 @@ async def close(ctx):
 @bot.command()
 async def ping(ctx):
     await ctx.channel.send(f'PONG: {time.ctime()} ')
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        time_string = bblib.Util.time_convert(error.retry_after)
+        await ctx.send(f'```The {ctx.command.name} command is on cooldown, you can use it in {time_string} .```')
 
 
 # Rewrite this function. You're better than this.

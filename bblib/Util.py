@@ -1,3 +1,4 @@
+import time
 from typing import Union
 
 
@@ -27,3 +28,10 @@ async def message_channel(ctx, incoming_message=None, embed=None) -> None:
         await ctx.message.channel.send(incoming_message)
     else:
         await ctx.message.channel.send(embed=embed)
+
+
+def time_convert(seconds, hour=False):
+    if hour is False:
+        return time.strftime("%M minutes and %S seconds", time.gmtime(seconds))
+    else:
+        return time.strftime("%H hours, %M minutes and %S seconds", time.gmtime(seconds))

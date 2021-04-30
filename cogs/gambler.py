@@ -278,6 +278,7 @@ class GamblerCog(commands.Cog, name='gambler'):
 
     @commands.command()
     @commands.check(member_create)
+    @commands.cooldown(1, 300, commands.BucketType.user)
     async def steal(self, ctx):
         """
         Will steal from another member if mentioned, cannot steal from the same member twice.
