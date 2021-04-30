@@ -10,3 +10,4 @@ database/__pycache__*
 database/database.log
 database/user_data.db
 .idea/dictionaries/whackaweasel.xml
+.idea/Bot_2019.iml

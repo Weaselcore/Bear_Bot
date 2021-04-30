@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlite3 import Error
 
 
+# An adapter for datetime datatype in SQLite database.
 def adapt_datetime(ts):
     return time.mktime(ts.timetuple())
 
@@ -13,7 +14,6 @@ def adapt_datetime(ts):
 class DatabaseWrapper:
 
     def __init__(self):
-
         # Create database folder outside of the bearbot working directory to make updating automation easier.
         dbfolder_path = Path.cwd().parent.joinpath('Bearbot_Database')
         if not dbfolder_path.exists():
@@ -43,6 +43,7 @@ class DatabaseWrapper:
                 else:
                     self.logger.info(__name__ + ': Existing database not found. Creating new db file.')
                 self.connection = sqlite3.connect(self.dbfile_path, detect_types=sqlite3.PARSE_DECLTYPES)
+                # Registering the datetime adapter.
                 sqlite3.register_adapter(datetime.datetime, adapt_datetime)
                 self.cursor = self.connection.cursor()
                 self.cursor.execute("PRAGMA foreign_keys = 1")
@@ -52,7 +53,9 @@ class DatabaseWrapper:
 
     def close_connection(self) -> None:
         """Closes the connection for the instance."""
-        self.connection.close()
+        if self.connection:
+            self.cursor.close()
+            self.connection.close()
 
     def execute(self, statement: str):
         try:
@@ -75,8 +78,12 @@ class DatabaseWrapper:
             self.logger.error(e)
 
     def __enter__(self):
-        self.create_connection()
-        return self
+        try:
+            self.create_connection()
+            return self
+        except sqlite3.Error as e:
+            self.logger.error(e)
+            return False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_connection()

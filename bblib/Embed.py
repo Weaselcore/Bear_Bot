@@ -1,5 +1,4 @@
 import discord
-from bblib import Util
 
 
 class GamblerEmbed:
@@ -55,3 +54,17 @@ class GamblerEmbed:
             return embed
         else:
             return None
+
+
+class BlackJackEmbed:
+
+    @staticmethod
+    def generated_image(title: str, description: str, footer: str, hidden=True, dealer=False):
+        if hidden and dealer:
+            embed = discord.Embed(title=f"{title}", color=0x016d03)
+        else:
+            embed = discord.Embed(title=f"{title}", color=0x016d03, description=description)
+
+        embed.set_image(url="attachment://image.png")
+        embed.set_footer(text=footer)
+        return embed

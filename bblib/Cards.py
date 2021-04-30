@@ -1,4 +1,8 @@
 from random import shuffle
+from PIL import Image
+
+from bblib import Util
+from bblib.Util import update_money
 
 suits = ("Spades", "Hearts", "Clubs", "Diamonds")
 
@@ -24,84 +28,204 @@ class Card:
     def get_value(self):
         return self.rank
 
+    def get_suit(self):
+        return self.suit
+
+    def get_image_name(self):
+        value = self.get_name()
+        suit = self.get_suit()
+        if value == 'Ace':
+            name_tuple = ('A', suit[:1],)
+        elif value == 'Jack':
+            name_tuple = ('J', suit[:1],)
+        elif value == 'Queen':
+            name_tuple = ('Q', suit[:1],)
+        elif value == 'King':
+            name_tuple = ('K', suit[:1],)
+        else:
+            name_tuple = (str(value), suit[:1])
+        return '{}{}.png'.format(*name_tuple)
+
     def __repr__(self):
         return str([self.get_name(), self.suit, ])
 
 
-# Example code to load images into an embed from local file.
-# embed = discord.Embed(title="Title", description="Desc", color=0x00ff00) #creates embed
-# file = discord.File("path/to/image/file.png", filename="image.png")
-# embed.set_image(url="attachment://image.png")
-# await ctx.send(file=file, embed=embed)
-
-
 class BlackJackSession:
-    def __init__(self):
+    def __init__(self, member):
+        self.member = member
         self.bust = False
+        self.stand = False
+        self.double = False
+        self.push = False
+        self.five_cards = False
+        self.timeout = False
+        self.turn = 0
         self.hand, self.dealer = [], []
-        self.deck = [Card(rank, suit) for suit in suits for rank in range(1, 14)]
+        self.jackpot = 0
+        self.add_jackpot(25)
+
+        self.deck = [Card(rank, suit) for suit in suits for rank in range(1, 14)] * 8
         for i in range(0, 5):
             shuffle(self.deck)
+
         self.deal()
+        self.deal(dealer=True)
 
-    def deal(self):
-        self.hand.append(self.deck.pop())
-        self.dealer.append(self.deck.pop())
-        self.hand.append(self.deck.pop())
-        self.dealer.append(self.deck.pop())
+    def deal(self, dealer=False):
+        if dealer and self.get_hand(dealer=True) < 17:
+            self.dealer.append(self.deck.pop())
+        elif dealer is False:
+            self.hand.append(self.deck.pop())
+            self.turn += 1
 
-    def conclusion(self):
-        if self.bust:
+    def get_hand(self, dealer=False):
+        total, has_ace = 0, 0
+        hand_to_check = self.dealer if dealer is True else self.hand
+        for card in hand_to_check:
+            name = card.get_name()
+            value = card.get_value()
+            if name == "Jack" or name == "Queen" or name == "King":
+                total += 10
+            elif name == "Ace":
+                total += 11
+                has_ace += 1
+            else:
+                total += value
+        # Adjust for the amount of aces in hand.
+        for i in range(0, has_ace):
+            if total > 21:
+                total -= 10
+        return total
+
+    def add_jackpot(self, bet):
+        money_amount = Util.get_money(self.member.id)
+        # Member's wallet is updated at the end of the session and so must be checked against the jackpot.
+        money_amount = money_amount - self.jackpot
+        if money_amount == 0:
             return False
-        elif self.get_hand_value() > self.get_dealer_value():
+        elif bet > money_amount:
+            self.jackpot += money_amount
+            return True
+        else:
+            self.jackpot += bet
+            return True
+
+    def gain_money(self):
+        update_money(self.member, self.jackpot * 2, add_wallet=True, banking=False)
+
+    def lose_money(self):
+        update_money(self.member, self.jackpot, add_wallet=False, banking=False)
+
+    def double_down(self):
+        self.jackpot = self.jackpot + 25
+        self.stand = True
+
+    def check_bust(self):
+        if self.get_hand() > 21:
+            self.bust = True
             return True
         else:
             return False
 
-    def get_hand_value(self):
-        total = 0
-        has_ace = 0
-        for card in self.hand:
-            name = card.get_name()
-            value = card.get_single_value()
-            if name == "Jack" or name == "Queen" or name == "King":
-                total += 10
-            elif name == "Ace":
-                total += 11
-                has_ace += 1
-            else:
-                total += value
-        # Adjust for the amount of aces in hand.
-        for i in range(1, has_ace):
-            if total > 21:
-                total -= 10
-        if total > 21:
-            self.bust = True
-        return total
+    def five_card_charlie(self):
+        if len(self.hand) == 5 and self.get_hand() <= 21:
+            self.five_cards = True
+            return True
+        else:
+            return False
 
-    def get_dealer_value(self):
-        total = 0
-        has_ace = 0
-        for card in self.dealer:
-            name = card.get_name()
-            value = card.get_single_value()
-            if name == "Jack" or name == "Queen" or name == "King":
-                total += 10
-            elif name == "Ace":
-                total += 11
-                has_ace += 1
-            else:
-                total += value
-        # Adjust for the amount of aces in hand.
-        for i in range(1, has_ace):
-            if total > 21:
-                total -= 10
-        if total > 21:
-            self.bust = True
-        return total
+    def check_push(self):
+        if self.get_hand() > 21 and self.get_hand(dealer=True) > 21:
+            self.push = True
+            return True
+        else:
+            return False
+
+    def set_stand(self) -> None:
+        self.stand = True
+
+    def is_stand(self) -> bool:
+        return self.stand
+
+    def set_timeout(self) -> None:
+        self.timeout = True
+
+    def get_timeout(self) -> bool:
+        return self.timeout
+
+    def set_double(self) -> None:
+        self.double = True
+
+    def get_double(self) -> bool:
+        return self.double
 
     def get_hand_cards(self):
         return str(self.hand)
 
     def get_dealer_cards(self):
         return str(self.dealer)
+
+    def construct_image(self, dealer=False):
+        # Get base mat design.
+        root_path = 'resources/card_images/'
+        padding, old_position, card_count = 50, 0, 0
+        base_mat = Image.open(root_path + 'card_mat.png')
+        base_mat = base_mat.copy()
+
+        hand_to_check = self.hand if dealer is False else self.dealer
+
+        first_card = True
+
+        for card in hand_to_check:
+            if dealer and (not self.check_bust() and not self.is_stand() and not self.five_card_charlie()) and first_card:
+                file_name = 'red_back.png'
+            else:
+                file_name = card.get_image_name()
+            card = Image.open(root_path + file_name)
+            if card_count == 0:
+                position = ((old_position + padding), padding)
+            else:
+                position = ((old_position + padding + card.width), padding)
+            base_mat.paste(card, position, card)
+            old_position = position[0]
+            card_count += 1
+            first_card = False
+        return base_mat
+
+    def check_condition(self):
+        hand_value = self.get_hand()
+
+        # If both hands bust.
+        if hand_value > 21 and self.get_hand(dealer=True) > 21:
+            return "```Push, no one wins.```"
+        # Hand is bigger than 21; bust.
+        elif hand_value > 21:
+            self.lose_money()
+            return "```Bust, better luck next time.```"
+        # Hand is 21 and lower than dealer.
+        elif hand_value == 21 and self.get_hand(dealer=True) < 22:
+            self.gain_money()
+            return "```Blackjack! You win!```"
+        # Hand is lower than 21 and higher than dealer.
+        elif 21 >= hand_value > self.get_hand(dealer=True):
+            self.gain_money()
+            return "```You have beaten the dealer!```"
+        # Hand is under 21 and has 5 cards.
+        elif 21 >= hand_value >= self.get_hand(dealer=True) and len(self.hand) == 5:
+            self.gain_money()
+            return "```Five Card Charlie! You win!```"
+        # Hand is equal to dealer's, dealer is lower than 22.
+        elif hand_value == self.get_hand(dealer=True) and self.get_hand() > 22:
+            return "```Push, no one wins.```"
+        # If player has 21 and dealer is busts.
+        elif hand_value == 21 and self.get_hand(dealer=True) > 21:
+            return "```Blackjack! You win!```"
+        # If hand is les or equal to 21 and dealer is over 21.
+        elif 21 >= hand_value and self.get_hand(dealer=True) > 21:
+            self.gain_money()
+            return "```You have beaten the dealer!```"
+        elif self.five_cards is True:
+            return "```Five Card Charlie, you have won!```"
+        else:
+            self.lose_money()
+            return "```You have lost against the dealer!```"
