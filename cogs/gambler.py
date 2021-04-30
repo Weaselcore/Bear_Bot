@@ -339,7 +339,6 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx,
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
 
-    # TODO clean up messaging
     @commands.command(aliases=['bank'])
     @commands.check(member_create)
     async def deposit(self, ctx):
@@ -348,7 +347,7 @@ class GamblerCog(commands.Cog, name='gambler'):
 
         if last_bank is None or (datetime.datetime.utcnow() - last_bank) > datetime.timedelta(hours=12):
             if number_arg is None:
-                await message_channel(ctx, incoming_message="Please add amount to deposit.")
+                await message_channel(ctx, incoming_message="```Please add amount to deposit.```")
             else:
                 member = ctx.message.author
                 money = get_money(member.id)
@@ -377,7 +376,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         number_arg = bblib.Util.get_number_arg(ctx)
 
         if number_arg is None:
-            await message_channel(ctx, incoming_message="Please add amount to withdraw.")
+            await message_channel(ctx, incoming_message="```Please add amount to withdraw.```")
         else:
             member = ctx.message.author
             money, bank = get_money(member.id), get_bank(member.id)
