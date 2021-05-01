@@ -404,16 +404,6 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
 
-    '''
-    @commands.command(aliases=['bj', 'black', 'jack'])
-    @commands.check(member_create)
-    async def blackjack(self, ctx):
-        blackjack_session = Cards.BlackJackSession()
-        await message_channel(ctx, incoming_message=f'Your hand: {blackjack_session.get_hand_value()} : {blackjack_session.get_hand_cards()}')
-        await message_channel(ctx, incoming_message=f'Dealers hand: {blackjack_session.get_dealer_value()} : {blackjack_session.get_dealer_cards()}')
-        await message_channel(ctx, incoming_message=f'Win: {blackjack_session.conclusion()}')
-    '''
-
 
 def setup(bot):
     bot.add_cog(GamblerCog(bot))

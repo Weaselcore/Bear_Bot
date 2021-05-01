@@ -1,4 +1,5 @@
 import discord
+from bblib import Util
 
 
 class GamblerEmbed:
@@ -45,11 +46,9 @@ class GamblerEmbed:
             embed = discord.Embed(title="LEADERBOARD - TOP 5", color=0x047dd5)
             count = 1
             for element in list_of_args:
-                embed.add_field(name='*Rank*:  ', value=f'```#{count}```', inline=True)
-                embed.add_field(name="*Name*: ", value=f'```   {element[0]}   ```', inline=True)
-                embed.add_field(
-                    name="*Amount*: ", value=f'```Wallet: ${element[1]} Bank: ${element[2]}```', inline=True
-                )
+                embed.add_field(name=f'#{count}', value=f'```{element[0]}```', inline=True)
+                embed.add_field(name="Wallet:", value=f'```${element[1]}```', inline=True)
+                embed.add_field(name="Bank:", value=f'```${element[2]}```', inline=True)
                 count += 1
             return embed
         else:
