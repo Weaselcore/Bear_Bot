@@ -5,16 +5,12 @@ import time
 from pathlib import Path
 from sqlite3 import Error
 
-
-def adapt_datetime(ts):
-    return time.mktime(ts.timetuple())
-
-
 class DatabaseWrapper:
 
     def __init__(self):
 
         # Create database folder outside of the bearbot working directory to make updating automation easier.
+        print(Path.cwd())
         dbfolder_path = Path.cwd().parent.joinpath('Bearbot_Database')
         if not dbfolder_path.exists():
             dbfolder_path.mkdir()
@@ -39,11 +35,16 @@ class DatabaseWrapper:
         if self.connection is None:
             try:
                 if self.dbfile_path.exists():
+                    self.logger.info(f'Database found: {self.dbfile_path}')
                     self.logger.info(__name__ + ': Existing database found. Connecting...')
                 else:
                     self.logger.info(__name__ + ': Existing database not found. Creating new db file.')
-                self.connection = sqlite3.connect(self.dbfile_path, detect_types=sqlite3.PARSE_DECLTYPES)
-                sqlite3.register_adapter(datetime.datetime, adapt_datetime)
+
+                self.connection = sqlite3.connect(
+                    self.dbfile_path,
+                    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+                )
+
                 self.cursor = self.connection.cursor()
                 self.cursor.execute("PRAGMA foreign_keys = 1")
                 self.logger.info("Opened up a database using SQLite3 Version: " + sqlite3.sqlite_version)

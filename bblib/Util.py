@@ -64,6 +64,13 @@ def get_single_value(column_name: str, table_name: str, filter_name: str, filter
         return result
 
 
+def get_row(table_name: str, filter_name: str, filter_str: int):
+    with DatabaseWrapper() as database:
+        cursor = database.execute(f"SELECT * FROM {table_name} WHERE ({filter_name})={filter_str}")
+        result = cursor.fetchall()
+        return result
+
+
 def get_money(member_id) -> int:
     money = get_single_value('money_amount', 'gambler_stat', '_id', member_id)
     return money

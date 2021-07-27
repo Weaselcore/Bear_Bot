@@ -11,6 +11,8 @@ from pathlib import Path
 from discord.ext import commands
 
 # Added in 1.5 to enable members cache.
+import bblib.core.player_database_factory
+
 intents = discord.Intents.default()
 intents.members = True
 intents.guilds = True
