@@ -5,9 +5,10 @@ from discord.ext import commands
 
 import bblib.Embed
 from bblib.Util import get_member_str, get_member_object, message_channel, member_create, fifty, get_money, get_bank, \
-    get_last_redeemed, get_total_gained, get_total_lost, get_stolen_id, get_stolen_time, get_last_bank_time, update, \
-    update_money
+    get_last_redeemed, get_total_gained, get_total_lost, get_stolen_id, get_stolen_time, get_last_bank_time, update
 from DatabaseWrapper import DatabaseWrapper
+from bblib.core.money_handler import MoneyHandler
+from bblib.core.player_database_factory import PlayerInfoFactory
 
 create_guild_table = """CREATE TABLE guild(
                             guild_id integer PRIMARY KEY,
@@ -123,7 +124,8 @@ class GamblerCog(commands.Cog, name='gambler'):
         now = datetime.datetime.utcnow()
 
         if last_redeemed is None or (now - last_redeemed) > datetime.timedelta(hours=1):
-            update_money(member, 100, add_wallet=True, banking=False, redeem=True)
+
+            MoneyHandler.add_money(PlayerInfoFactory.generate(member.id), 100)
 
             title = ("THAT'S ANOTHER HUNNIT!",)
             embed = bblib.Embed.GamblerEmbed.general(
@@ -156,12 +158,12 @@ class GamblerCog(commands.Cog, name='gambler'):
 
         if money_to_gamble is not None:
             if fifty():
-                update_money(member, money_to_gamble)
+                MoneyHandler.add_money(PlayerInfoFactory.generate(member.id), money_to_gamble * 2)
                 description_tuple = (
                     f"You have successfully doubled your money (${money_to_gamble} to ${money_to_gamble * 2}).",)
                 footer_tuple = (f"Your balance is now ${get_money(member.id)}",)
             else:
-                update_money(member, money_to_gamble, add_wallet=False)
+                MoneyHandler.remove_money(PlayerInfoFactory.generate(member.id), money_to_gamble)
                 description_tuple = (f"You have lost ${money_to_gamble}.",)
                 footer_tuple = (f"Your balance is now ${get_money(member.id)}.",)
 
@@ -197,7 +199,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             pass
         elif mention[0].id == 450904080211116032:
             money = get_money(member.id)
-            update_money(member, money, add_wallet=False)
+            MoneyHandler.remove_money(PlayerInfoFactory.generate(member.id), money)
             await message_channel(ctx,
                                   incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
                                                    "penniless and homeless.")
@@ -214,13 +216,13 @@ class GamblerCog(commands.Cog, name='gambler'):
             title = "OOOH YOU STEALIN"
             if target_money is not None and target_money != 0:
                 if fifty():
-                    update_money(mention[0], target_money, add_wallet=False)
-                    update_money(member, target_money)
+                    MoneyHandler.remove_money(PlayerInfoFactory.generate(mention[0].id), target_money)
+                    MoneyHandler.add_money(PlayerInfoFactory.generate(member.id), target_money)
                     description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}."
                     footer = f"New balance: ${get_money(member.id)}"
                 else:
                     money = get_money(member.id)
-                    update_money(member, round(money * 0.50), add_wallet=False)
+                    MoneyHandler.remove_money(PlayerInfoFactory.generate(member.id), round(money * 0.5))
                     description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
                     footer = f"Balance: ${round(money * 0.50)} "
                 update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
@@ -249,7 +251,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                 if number_arg >= money:
                     number_arg = money
 
-                update_money(member, number_arg, add_wallet=False, banking=True)
+                MoneyHandler.add_bank(PlayerInfoFactory.generate(member.id), number_arg)
 
                 title = "DEPOSITING TO BEAR BANK..."
                 description = f'You have deposited ${number_arg}.'
@@ -278,7 +280,7 @@ class GamblerCog(commands.Cog, name='gambler'):
             if number_arg >= bank:
                 number_arg = bank
 
-            update_money(member, number_arg, add_wallet=True, banking=True)
+            MoneyHandler.remove_bank(PlayerInfoFactory.generate(member), number_arg)
 
             title = f"Withdrawing for {get_member_str(member)}..."
             description = f'You have withdrawn ${number_arg}.'
@@ -298,10 +300,8 @@ class GamblerCog(commands.Cog, name='gambler'):
             else:
                 await message_channel(ctx, incoming_message="No big ballers on this server.")
 
-    # TODO Make this not add to stats.
     @commands.command()
     @commands.check(member_create)
-    @commands.has_permissions(administrator=True)
     async def give(self, ctx):
         if len(ctx.message.mentions) == 0:
             await message_channel(ctx, '```You need to mention someone to use this command.```')
@@ -309,9 +309,37 @@ class GamblerCog(commands.Cog, name='gambler'):
             member = ctx.message.mentions[0]
             name = get_member_str(member)
             wallet_before = get_money(member.id)
-            update_money(member, int(ctx.message.clean_content.split(" ")[-1]), add_wallet=True, banking=False, redeem=False)
+
+            MoneyHandler.give_money(
+                PlayerInfoFactory.generate(ctx.author.id),
+                PlayerInfoFactory.generate(member.id),
+                int(ctx.message.clean_content.split(" ")[-1])
+            )
+
             wallet_after = get_money(member.id)
             await message_channel(ctx, f"```Updated {name}'s wallet: ${wallet_before} -> ${wallet_after}```")
+
+    @commands.command()
+    @commands.check(member_create)
+    @commands.has_permissions(administrator=True)
+    async def handout(self, ctx):
+        if len(ctx.message.mentions) == 0:
+            await message_channel(ctx, '```You need to mention someone to use this command.```')
+        else:
+            member = ctx.message.mentions[0]
+            name = get_member_str(member)
+            wallet_before = get_money(member.id)
+
+            MoneyHandler.free_money(
+                PlayerInfoFactory.generate(member.id),
+                int(ctx.message.clean_content.split(" ")[-1])
+            )
+
+            wallet_after = get_money(member.id)
+            await message_channel(ctx, f"```Updated {name}'s wallet: ${wallet_before} -> ${wallet_after}```")
+
+
+
 
 
 def setup(bot):

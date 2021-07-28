@@ -118,7 +118,7 @@ def update(list_to_change: list, member_id):
         database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
 
 
-def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False, add_stat=False):
+"""def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False, add_stat=False):
     wallet_amount = get_money(member.id)
     bank_amount = get_bank(member.id)
     total_gained = get_total_gained(member.id)
@@ -150,4 +150,4 @@ def update_money(member, money_to_update, add_wallet=True, banking=False, redeem
     if banking and not add_wallet:
         data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
 
-    update(data_tuple, member_id=member.id)
+    update(data_tuple, member_id=member.id)"""
