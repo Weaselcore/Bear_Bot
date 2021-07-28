@@ -2,7 +2,8 @@ from random import shuffle
 from PIL import Image
 
 from bblib import Util
-from bblib.Util import update_money
+from bblib.core.money_handler import MoneyHandler
+from bblib.core.player_database_factory import PlayerInfoFactory
 
 suits = ("Spades", "Hearts", "Clubs", "Diamonds")
 
@@ -111,10 +112,10 @@ class BlackJackSession:
             return True
 
     def gain_money(self):
-        update_money(self.member, self.jackpot * 2, add_wallet=True, banking=False)
+        MoneyHandler.add_money(PlayerInfoFactory.generate(self.member.id), self.jackpot * 2)
 
     def lose_money(self):
-        update_money(self.member, self.jackpot, add_wallet=False, banking=False)
+        MoneyHandler.remove_money(PlayerInfoFactory.generate(self.member.id), self.jackpot)
 
     def double_down(self):
         self.jackpot = self.jackpot + 25

@@ -1,16 +1,14 @@
-import datetime
-import sqlite3
 import logging
-import time
+import sqlite3
 from pathlib import Path
 from sqlite3 import Error
+
 
 class DatabaseWrapper:
 
     def __init__(self):
 
         # Create database folder outside of the bearbot working directory to make updating automation easier.
-        print(Path.cwd())
         dbfolder_path = Path.cwd().parent.joinpath('Bearbot_Database')
         if not dbfolder_path.exists():
             dbfolder_path.mkdir()
@@ -40,10 +38,9 @@ class DatabaseWrapper:
                 else:
                     self.logger.info(__name__ + ': Existing database not found. Creating new db file.')
 
-                self.connection = sqlite3.connect(
-                    self.dbfile_path,
-                    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-                )
+                self.connection = sqlite3.connect(self.dbfile_path,
+                                                  detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+                                                  )
 
                 self.cursor = self.connection.cursor()
                 self.cursor.execute("PRAGMA foreign_keys = 1")
@@ -55,9 +52,9 @@ class DatabaseWrapper:
         """Closes the connection for the instance."""
         self.connection.close()
 
-    def execute(self, statement: str):
+    def execute(self, statement: str, values: tuple):
         try:
-            result = self.cursor.execute(statement)
+            result = self.cursor.execute(statement, values)
             self.connection.commit()
             return result
         except Error as e:

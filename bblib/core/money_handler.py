@@ -1,3 +1,5 @@
+import datetime
+
 from bblib.core.player_database_info import PlayerDatabaseInfo
 from bblib.Util import update
 
@@ -5,10 +7,17 @@ from bblib.Util import update
 class MoneyHandler:
 
     @staticmethod
+    def redeem(player_info: PlayerDatabaseInfo, money_to_add: int) -> None:
+        old_balance = player_info.money_amount
+        update(["money_amount", old_balance + money_to_add], player_info.id)
+        update(["total_gained", money_to_add + player_info.total_gained], player_info.id)
+        update(["last_redeemed", str(datetime.datetime.utcnow())], player_info.id)
+
+    @staticmethod
     def add_money(player_info: PlayerDatabaseInfo, money_to_add: int) -> None:
         old_balance = player_info.money_amount
         update(["money_amount", old_balance + money_to_add], player_info.id)
-        update(["total_gained", money_to_add], player_info.id)
+        update(["total_gained", money_to_add + player_info.total_gained], player_info.id)
 
     @staticmethod
     def remove_money(player_info: PlayerDatabaseInfo, money_to_remove: int) -> bool:
@@ -17,7 +26,7 @@ class MoneyHandler:
             return False
         else:
             update(["money_amount", old_balance - money_to_remove], player_info.id)
-            update(["total_lost", money_to_remove], player_info.id)
+            update(["total_lost", money_to_remove + player_info.total_lost], player_info.id)
             return True
 
     @staticmethod
@@ -43,13 +52,13 @@ class MoneyHandler:
             return True
 
     @staticmethod
-    def give_money(giver: PlayerDatabaseInfo, taker: PlayerDatabaseInfo, money_to_give: int) -> bool:
+    def give_money(giver: PlayerDatabaseInfo, taker: PlayerDatabaseInfo, money_to_give: int):
         if giver.money_amount - money_to_give < 0:
-            return False
-        else:
-            update(["money_amount", money_to_give + taker.money_amount], taker.id)
-            update(["money_amount", giver.money_amount - money_to_give], giver.id)
-            return True
+            money_to_give = giver.money_amount
+        update(["money_amount", money_to_give + taker.money_amount], taker.id)
+        update(["total_gained", money_to_give + taker.total_gained], taker.id)
+        update(["money_amount", giver.money_amount - money_to_give], giver.id)
+        update(["total_lost", money_to_give + taker.total_lost], giver.id)
 
     @staticmethod
     def free_money(taker: PlayerDatabaseInfo, money_to_give: int):

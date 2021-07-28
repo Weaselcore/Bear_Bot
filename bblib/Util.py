@@ -1,14 +1,14 @@
-import datetime
 from random import choice
 from typing import Union
-
-import discord
 
 from DatabaseWrapper import DatabaseWrapper
 
 
-def get_member_str(member: discord.member) -> str:
-    return member.name if member.nick is None else member.nick
+def get_member_str(member) -> Union[str, None]:
+    if member:
+        return member.name if member.nick is None else member.nick
+    else:
+        return None
 
 
 def get_member_object(ctx, member_id: int):
@@ -46,10 +46,10 @@ def member_create(ctx):
         members_to_check = [ctx.message.author.id]
         members_to_check.extend(ctx.message.raw_mentions)
         for member in members_to_check:  # Deposit amount.
-            cursor = database.execute(f"SELECT _id FROM gambler_stat WHERE _id={member}")
+            cursor = database.execute("SELECT _id FROM gambler_stat WHERE _id=?", (member,))
             result = cursor.fetchall()
             if not result:
-                database.execute(f"""INSERT INTO gambler_stat (_id, money_amount) values({member}, 0);""")
+                database.execute("INSERT INTO gambler_stat (_id, money_amount) values(?, 0);", (member,))
     return True
 
 
@@ -59,14 +59,14 @@ def fifty() -> bool:
 
 def get_single_value(column_name: str, table_name: str, filter_name: str, filter_str: int):
     with DatabaseWrapper() as database:
-        cursor = database.execute(f"SELECT {column_name} FROM {table_name} WHERE ({filter_name})={filter_str}")
+        cursor = database.execute("SELECT FROM ? WHERE ?=?", (column_name, table_name, filter_name, filter_str,))
         result = cursor.fetchall()[0][0]
         return result
 
 
 def get_row(table_name: str, filter_name: str, filter_str: int):
     with DatabaseWrapper() as database:
-        cursor = database.execute(f"SELECT * FROM {table_name} WHERE ({filter_name})={filter_str}")
+        cursor = database.execute("SELECT * FROM ?WHERE (?)=?", (table_name, filter_name, filter_str,))
         result = cursor.fetchall()
         return result
 
@@ -111,43 +111,9 @@ def get_last_bank_time(member_id):
     return last_bank_time
 
 
-def update(list_to_change: list, member_id):
+def update(list_to_change: list, member_id: int):
     # nickname, money_amount, last_stolen_id, last_redeemed, last_stolen_datetime, total_gained, total_lost
     with DatabaseWrapper() as database:
-        values = list(zip(*list_to_change))
-        database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
-
-
-"""def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False, add_stat=False):
-    wallet_amount = get_money(member.id)
-    bank_amount = get_bank(member.id)
-    total_gained = get_total_gained(member.id)
-    total_lost = get_total_lost(member.id)
-
-    if banking:
-        if add_wallet:
-            wallet_amount = wallet_amount + money_to_update
-            bank_amount = bank_amount - money_to_update
-        else:
-            wallet_amount = wallet_amount - money_to_update
-            bank_amount = bank_amount + money_to_update
-    elif not banking:
-        if add_wallet:
-            total_gained = total_gained + money_to_update
-            wallet_amount = wallet_amount + money_to_update
-        else:
-            total_lost = total_lost + money_to_update
-            wallet_amount = wallet_amount - money_to_update
-            # TODO Dirty hack, implement better validation with discord py testing library.
-            if wallet_amount < 0:
-                wallet_amount = 0
-
-    data_tuple = [('nickname', get_member_str(member)), ('money_amount', wallet_amount),
-                  ('total_gained', total_gained), ('total_lost', total_lost), ('bank_amount', bank_amount)]
-
-    if redeem:
-        data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
-    if banking and not add_wallet:
-        data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
-
-    update(data_tuple, member_id=member.id)"""
+        database.execute(
+            'UPDATE gambler_stat SET ? = ? WHERE _id = ?;', (list_to_change[0], list_to_change[1], member_id,)
+        )
