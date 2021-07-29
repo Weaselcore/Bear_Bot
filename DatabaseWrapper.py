@@ -2,6 +2,7 @@ import logging
 import sqlite3
 from pathlib import Path
 from sqlite3 import Error
+from bblib.core.database_statement import SqlStatement
 
 
 class DatabaseWrapper:
@@ -52,9 +53,9 @@ class DatabaseWrapper:
         """Closes the connection for the instance."""
         self.connection.close()
 
-    def execute(self, statement: str, values: tuple):
+    def execute(self, statement: SqlStatement, values: tuple):
         try:
-            result = self.cursor.execute(statement, values)
+            result = self.cursor.execute(statement.value, values)
             self.connection.commit()
             return result
         except Error as e:
@@ -68,7 +69,7 @@ class DatabaseWrapper:
 
     def create_table(self, statement):
         try:
-            self.execute(statement)
+            self.cursor.execute(statement)
         except Error as e:
             self.logger.error(e)
 

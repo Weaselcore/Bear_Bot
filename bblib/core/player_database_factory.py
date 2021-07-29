@@ -1,6 +1,6 @@
 from typing import Union
 
-from DatabaseWrapper import DatabaseWrapper
+from bblib.Util import get_row
 from bblib.core.player_database_info import PlayerDatabaseInfo
 
 
@@ -8,25 +8,18 @@ class PlayerInfoFactory:
 
     @staticmethod
     def generate(member_id: int) -> Union[None, PlayerDatabaseInfo]:
-        with DatabaseWrapper() as database:
-            if database:
-                result = database.execute(f"SELECT * FROM 'GAMBLER_STAT' WHERE _id = {member_id}")
-                for rows in result:
-                    player_info = PlayerDatabaseInfo(id=rows[0],
-                                                     nickname=rows[1],
-                                                     money_amount=rows[2],
-                                                     bank_amount=rows[3],
-                                                     last_stolen_id=rows[4],
-                                                     last_redeemed=rows[5],
-                                                     last_bank_time=rows[6],
-                                                     last_stolen_time=rows[7],
-                                                     total_gained=rows[8],
-                                                     total_lost=rows[9])
-                if player_info:
-                    return player_info
-                else:
-                    return None
-
-
-
-
+        result = get_row(member_id)
+        if result is not None:
+            player_info = PlayerDatabaseInfo(id=result[0],
+                                             nickname=result[1],
+                                             money_amount=result[2],
+                                             bank_amount=result[3],
+                                             last_stolen_id=result[4],
+                                             last_redeemed=result[5],
+                                             last_bank_time=result[6],
+                                             last_stolen_time=result[7],
+                                             total_gained=result[8],
+                                             total_lost=result[9])
+            return player_info
+        else:
+            return None

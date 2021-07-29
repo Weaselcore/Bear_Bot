@@ -6,31 +6,11 @@ from discord.ext import commands
 import bblib.Embed
 from DatabaseWrapper import DatabaseWrapper
 from bblib.Util import get_member_str, message_channel, member_create, fifty, get_money, get_bank, \
-    get_last_redeemed, get_last_bank_time, update
+    get_last_redeemed, get_last_bank_time, insert, get_leader, get_stolen_id, update_last_stolen_id, \
+    update_last_stolen_datetime
 from bblib.core.money_handler import MoneyHandler
 from bblib.core.player_database_factory import PlayerInfoFactory
-
-create_guild_table = """CREATE TABLE guild(
-                            guild_id integer PRIMARY KEY,
-                            name text NOT NULL,
-                            creation_date timestamp);"""
-
-create_member_table = """CREATE TABLE member(
-                            _id integer NOT NULL PRIMARY KEY,
-                            name text NOT NULL,
-                            creation_date timestamp);"""
-
-create_gambler_stat_table = """CREATE TABLE gambler_stat(
-                            _id integer NOT NULL PRIMARY KEY,
-                            nickname text DEFAULT NULL,
-                            money_amount integer DEFAULT 0,
-                            bank_amount integer DEFAULT 0,
-                            last_stolen_id integer,
-                            last_redeemed timestamp,
-                            last_bank_datetime timestamp,
-                            last_stolen_datetime timestamp,
-                            total_gained integer DEFAULT 0,
-                            total_lost integer DEFAULT 0);"""
+from bblib.core.database_statement import SqlStatement
 
 
 class GamblerCog(commands.Cog, name='gambler'):
@@ -38,17 +18,13 @@ class GamblerCog(commands.Cog, name='gambler'):
         self.bot = bot
         self.logger = logging.getLogger('discord')
 
-        """ Check if tables are in the database. """
-        global create_gambler_stat_table, create_member_table, create_guild_table
-
         table_name_tuple = ('guild', 'gambler_stat')
-        table_create_tuple = (create_guild_table, create_gambler_stat_table)
+        table_create_tuple = (SqlStatement.CREATE_GUILD_TABLE, SqlStatement.CREATE_GAMBLER_STAT_TABLE)
         to_unzip = zip(table_name_tuple, table_create_tuple)
 
         for tuple_data in to_unzip:
             with DatabaseWrapper() as database:
-                check_format = 'SELECT count(name) FROM sqlite_master WHERE type = "table" AND name = ?'
-                cursor = database.execute(check_format, (tuple_data[0],))
+                cursor = database.execute(SqlStatement.CHECK_TABLES, (tuple_data[0],))
                 if cursor.fetchone()[0] == 1:
                     self.logger.info((tuple_data[0]).upper() + " table exists.")
                 else:
@@ -57,10 +33,8 @@ class GamblerCog(commands.Cog, name='gambler'):
 
         """ Register Guilds. """
         list_of_guilds = self.bot.guilds
-        with DatabaseWrapper() as database:
-            for guild in list_of_guilds:
-                database.execute(
-                    "INSERT OR REPLACE INTO guild (guild_id, name, creation_date) values(?, ?, ?);", (guild.id, guild.name, datetime.datetime.utcnow(),))
+        for guild in list_of_guilds:
+            insert(SqlStatement.INSERT_GUILD, (guild.id, guild.name, datetime.datetime.now(),))
 
     @commands.command(aliases=['stat', 'statistic'])
     @commands.check(member_create)
@@ -107,9 +81,9 @@ class GamblerCog(commands.Cog, name='gambler'):
         """
         member = ctx.message.author
         money, last_redeemed = get_money(member.id), get_last_redeemed(member.id)
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now()
 
-        if last_redeemed is None or (now - last_redeemed) > datetime.timedelta(hours=1):
+        if last_redeemed is None or ((now - last_redeemed) > datetime.timedelta(hours=1)):
 
             MoneyHandler.redeem(PlayerInfoFactory.generate(member.id), 100)
 
@@ -168,13 +142,8 @@ class GamblerCog(commands.Cog, name='gambler'):
         :return:
         """
 
-        def get_last_stolen(member_id):
-            with DatabaseWrapper() as database:
-                cursor = database.execute("SELECT last_stolen_id FROM gambler_stat WHERE _id = ?", (member_id,))
-                return cursor.fetchall()[0][0]
-
         member, mention = ctx.message.author, ctx.message.mentions
-        last_stolen = get_last_stolen(member.id)
+        last_stolen = get_stolen_id(member.id)
 
         if len(mention) == 0:
             await message_channel(ctx, incoming_message="You have to mention someone to steal.")
@@ -211,9 +180,8 @@ class GamblerCog(commands.Cog, name='gambler'):
                     MoneyHandler.remove_money(PlayerInfoFactory.generate(member.id), round(money * 0.5))
                     description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
                     footer = f"Balance: ${round(money * 0.50)} "
-                update([("last_stolen_id", mention[0].id), ("last_stolen_datetime", str(datetime.datetime.utcnow()))],
-                       member_id=member.id)
-
+                update_last_stolen_id(member.id, mention[0].id)
+                update_last_stolen_datetime(member.id, str(datetime.datetime.now()))
                 embed = bblib.Embed.GamblerEmbed.general((title, description, footer))
                 await message_channel(ctx, embed=embed)
             else:
@@ -227,7 +195,7 @@ class GamblerCog(commands.Cog, name='gambler'):
         number_arg = bblib.Util.get_number_arg(ctx)
         last_bank = get_last_bank_time(ctx.message.author.id)
 
-        if last_bank is None or (datetime.datetime.utcnow() - last_bank) > datetime.timedelta(hours=12):
+        if last_bank is None or (datetime.datetime.now() - last_bank) > datetime.timedelta(hours=12):
             if number_arg is None:
                 await message_channel(ctx, incoming_message="Please add amount to deposit.")
             else:
@@ -245,7 +213,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                 embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
                 await message_channel(ctx, embed=embed)
         else:
-            time_remaining = datetime.timedelta(4) - (datetime.datetime.utcnow() - last_bank)
+            time_remaining = datetime.timedelta(4) - (datetime.datetime.now() - last_bank)
             title = "Bank Command on Cooldown"
             description = f'```{datetime.datetime.fromtimestamp(time_remaining.seconds).strftime("%H hours, %M minutes, %S seconds")} remaining```'
             footer = f'Invoked by {get_member_str(ctx.message.author)}'
@@ -276,15 +244,13 @@ class GamblerCog(commands.Cog, name='gambler'):
 
     @commands.command(aliases=['rank'])
     async def leader(self, ctx):
-        with DatabaseWrapper() as database:
-            cursor = database.execute("SELECT nickname, money_amount, bank_amount FROM gambler_stat ORDER BY "
-                                      "money_amount + bank_amount DESC LIMIT ?", (5,))
-            result = cursor.fetchall()
-            embed = bblib.Embed.GamblerEmbed.leaderboard(result)
-            if embed:
-                await message_channel(ctx, embed=embed)
-            else:
-                await message_channel(ctx, incoming_message="No big ballers on this server.")
+
+        result = get_leader(5)
+        embed = bblib.Embed.GamblerEmbed.leaderboard(ctx, result)
+        if embed:
+            await message_channel(ctx, embed=embed)
+        else:
+            await message_channel(ctx, incoming_message="No big ballers on this server.")
 
     @commands.command()
     @commands.check(member_create)
