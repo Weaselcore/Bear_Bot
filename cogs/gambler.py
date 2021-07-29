@@ -159,7 +159,7 @@ class GamblerCog(commands.Cog, name='gambler'):
                                   incoming_message="You tried to mug Bear Bot?!? Reverse card! You're now naked, "
                                                    "penniless and homeless.")
         elif last_stolen is not None and int(last_stolen) == mention[0].id:
-            await message_channel(ctx, "You cannot target the same person again!")
+            await message_channel(ctx, "```You cannot target the same person again!```")
             pass
         else:
             # This prevents people with low balance stealing all from high balance people.
@@ -173,12 +173,12 @@ class GamblerCog(commands.Cog, name='gambler'):
                 if fifty():
                     MoneyHandler.remove_money(PlayerInfoFactory.generate(mention[0].id), target_money)
                     MoneyHandler.add_money(PlayerInfoFactory.generate(member.id), target_money)
-                    description = f"You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}. "
+                    description = f"```You have stolen ${target_money} from {mention[0].nick if mention[0].nick is not None else mention[0].name}.```"
                     footer = f"New balance: ${get_money(member.id)}"
                 else:
                     money = get_money(member.id)
                     MoneyHandler.remove_money(PlayerInfoFactory.generate(member.id), round(money * 0.5))
-                    description = f"You have been caught. You've been fined ${round(money * 0.50)}. "
+                    description = f"```You have been caught. You've been fined ${round(money * 0.50)}. ```"
                     footer = f"Balance: ${round(money * 0.50)} "
                 update_last_stolen_id(member.id, mention[0].id)
                 update_last_stolen_datetime(member.id, str(datetime.datetime.now()))
@@ -188,7 +188,6 @@ class GamblerCog(commands.Cog, name='gambler'):
                 await message_channel(ctx,
                                       incoming_message="You cannot steal from people who have nothing. How heartless.")
 
-    # TODO clean up messaging
     @commands.command(aliases=['bank'])
     @commands.check(member_create)
     async def deposit(self, ctx):
@@ -207,9 +206,12 @@ class GamblerCog(commands.Cog, name='gambler'):
 
                 MoneyHandler.add_bank(PlayerInfoFactory.generate(member.id), number_arg)
 
+                money = get_money(member.id)
+                bank = get_bank(member.id)
+
                 title = "DEPOSITING TO BEAR BANK..."
-                description = f'You have deposited ${number_arg}.'
-                footer = f'Balance: ${get_money(member.id)} | Bank: ${get_bank(member.id)}'
+                description = f'```Balance: ${money} | Bank: ${bank}```'
+                footer = f'Invoked by {get_member_str(ctx.message.author)} '
                 embed = bblib.Embed.GamblerEmbed.general((title, description, footer,))
                 await message_channel(ctx, embed=embed)
         else:

@@ -97,13 +97,6 @@ def get_last_bank_time(member_id):
     return get(SqlStatement.GET_LAST_BANK_DATETIME, member_id)
 
 
-def get_leader(result_limit: int):
-    with DatabaseWrapper() as database:
-        cursor = database.execute(SqlStatement.GET_LEADER, (result_limit,))
-        result = cursor.fetchall()
-        return result
-
-
 def update_nickname(member_id: int, new_nickname: str):
     update(SqlStatement.UPDATE_NICKNAME, new_nickname, member_id)
 
@@ -146,6 +139,13 @@ def insert_id(member_id: int):
 
 def insert_guild(guild_id: int, guild_name: str, guild_creation_datetime):
     insert(SqlStatement.INSERT_GUILD, (guild_id, guild_name, guild_creation_datetime,))
+
+
+def get_leader(result_limit: int):
+    with DatabaseWrapper() as database:
+        cursor = database.execute(SqlStatement.GET_LEADER, (result_limit,))
+        result = cursor.fetchall()
+        return result
 
 
 def get_row(member_id: int):

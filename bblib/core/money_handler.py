@@ -2,7 +2,7 @@ import datetime
 
 from bblib.core.player_database_info import PlayerDatabaseInfo
 from bblib.Util import update, update_money_amount, update_total_gained, update_last_redeemed, update_total_lost, \
-    update_bank_amount
+    update_bank_amount, update_last_bank_datetime
 
 
 class MoneyHandler:
@@ -31,20 +31,18 @@ class MoneyHandler:
 
     @staticmethod
     def add_bank(player_info: PlayerDatabaseInfo, money_to_transfer: int) -> bool:
-        old_money_balance = player_info.money_amount
-        old_bank_balance = player_info.bank_amount
-        if old_money_balance - money_to_transfer > 0:
+
+        if player_info.money_amount - money_to_transfer < 0:
             return False
         else:
             update_money_amount(player_info.id, player_info.money_amount - money_to_transfer)
             update_bank_amount(player_info.id, player_info.bank_amount + money_to_transfer)
+            update_last_bank_datetime(player_info.id, str(datetime.datetime.now()))
             return True
 
     @staticmethod
     def remove_bank(player_info: PlayerDatabaseInfo, money_to_transfer: int) -> bool:
-        old_money_balance = player_info.money_amount
-        old_bank_balance = player_info.bank_amount
-        if old_bank_balance - money_to_transfer > 0:
+        if player_info.bank_amount - money_to_transfer < 0:
             return False
         else:
             update_money_amount(player_info.id, player_info.money_amount + money_to_transfer)
