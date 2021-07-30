@@ -1,13 +1,8 @@
-import datetime
-import sqlite3
 import logging
-import time
+import sqlite3
 from pathlib import Path
 from sqlite3 import Error
-
-
-def adapt_datetime(ts):
-    return time.mktime(ts.timetuple())
+from bblib.core.database_statement import SqlStatement
 
 
 class DatabaseWrapper:
@@ -39,11 +34,15 @@ class DatabaseWrapper:
         if self.connection is None:
             try:
                 if self.dbfile_path.exists():
+                    self.logger.info(f'Database found: {self.dbfile_path}')
                     self.logger.info(__name__ + ': Existing database found. Connecting...')
                 else:
                     self.logger.info(__name__ + ': Existing database not found. Creating new db file.')
-                self.connection = sqlite3.connect(self.dbfile_path, detect_types=sqlite3.PARSE_DECLTYPES)
-                sqlite3.register_adapter(datetime.datetime, adapt_datetime)
+
+                self.connection = sqlite3.connect(self.dbfile_path,
+                                                  detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+                                                  )
+
                 self.cursor = self.connection.cursor()
                 self.cursor.execute("PRAGMA foreign_keys = 1")
                 self.logger.info("Opened up a database using SQLite3 Version: " + sqlite3.sqlite_version)
@@ -54,9 +53,9 @@ class DatabaseWrapper:
         """Closes the connection for the instance."""
         self.connection.close()
 
-    def execute(self, statement: str):
+    def execute(self, statement: SqlStatement, values: tuple):
         try:
-            result = self.cursor.execute(statement)
+            result = self.cursor.execute(statement.value, values)
             self.connection.commit()
             return result
         except Error as e:
@@ -70,7 +69,7 @@ class DatabaseWrapper:
 
     def create_table(self, statement):
         try:
-            self.execute(statement)
+            self.cursor.execute(statement)
         except Error as e:
             self.logger.error(e)
 

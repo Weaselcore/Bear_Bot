@@ -1,9 +1,9 @@
 import asyncio
 import discord
 from discord.ext import commands, tasks
-from UnorderedListClass import UnorderedList
-from LobbyClass import Lobby
-from EmbedClass import GameEmbed, ResponseEmbed
+from depreciated.UnorderedListClass import UnorderedList
+from depreciated.LobbyClass import Lobby
+from depreciated.EmbedClass import GameEmbed, ResponseEmbed
 from discord.ext.commands import cooldown
 
 

@@ -1,14 +1,15 @@
-import datetime
 from random import choice
 from typing import Union
 
-import discord
-
 from DatabaseWrapper import DatabaseWrapper
+from bblib.core.database_statement import SqlStatement
 
 
-def get_member_str(member: discord.member) -> str:
-    return member.name if member.nick is None else member.nick
+def get_member_str(member) -> Union[str, None]:
+    if member:
+        return member.name if member.nick is None else member.nick
+    else:
+        return None
 
 
 def get_member_object(ctx, member_id: int):
@@ -42,14 +43,13 @@ def member_create(ctx):
     :param ctx:
     :return True: Will always be the case.
     """
-    with DatabaseWrapper() as database:
-        members_to_check = [ctx.message.author.id]
-        members_to_check.extend(ctx.message.raw_mentions)
-        for member in members_to_check:  # Deposit amount.
-            cursor = database.execute(f"SELECT _id FROM gambler_stat WHERE _id={member}")
-            result = cursor.fetchall()
-            if not result:
-                database.execute(f"""INSERT INTO gambler_stat (_id, money_amount) values({member}, 0);""")
+
+    members_to_check = [ctx.message.author.id]
+    members_to_check.extend(ctx.message.raw_mentions)
+    for member in members_to_check:  # Deposit amount.
+        result = get(SqlStatement.GET_ID, member)
+        if not result:
+            insert(SqlStatement.INSERT_ID, (member,))
     return True
 
 
@@ -57,90 +57,120 @@ def fifty() -> bool:
     return choice([True, False])
 
 
-def get_single_value(column_name: str, table_name: str, filter_name: str, filter_str: int):
-    with DatabaseWrapper() as database:
-        cursor = database.execute(f"SELECT {column_name} FROM {table_name} WHERE ({filter_name})={filter_str}")
-        result = cursor.fetchall()[0][0]
-        return result
+def check_tables(name: str):
+    return get(SqlStatement.CHECK_TABLES, name)
 
 
-def get_money(member_id) -> int:
-    money = get_single_value('money_amount', 'gambler_stat', '_id', member_id)
-    return money
+def get_nickname(member_id: int):
+    return get(SqlStatement.GET_NICKNAME, member_id)
 
 
-def get_bank(member_id) -> int:
-    bank = get_single_value('bank_amount', 'gambler_stat', '_id', member_id)
-    return bank
+def get_money(member_id: int) -> int:
+    return get(SqlStatement.GET_MONEY, member_id)
 
 
-def get_last_redeemed(member_id):
-    last_redeemed_time = get_single_value('last_redeemed', 'gambler_stat', '_id', member_id)
-    return last_redeemed_time
+def get_bank(member_id: int) -> int:
+    return get(SqlStatement.GET_BANK, member_id)
 
 
-def get_total_gained(member_id) -> int:
-    total_gained = get_single_value('total_gained', 'gambler_stat', '_id', member_id)
-    return total_gained
+def get_last_redeemed(member_id: int):
+    return get(SqlStatement.GET_LAST_REDEEMED, member_id)
 
 
-def get_total_lost(member_id) -> int:
-    total_lost = get_single_value('total_lost', 'gambler_stat', '_id', member_id)
-    return total_lost
+def get_total_gained(member_id: int) -> int:
+    return get(SqlStatement.GET_TOTAL_GAINED, member_id)
 
 
-def get_stolen_id(member_id):
-    stolen_name = get_single_value('last_stolen_id', 'gambler_stat', '_id', member_id)
-    return stolen_name
+def get_total_lost(member_id: int) -> int:
+    return get(SqlStatement.GET_TOTAL_LOST, member_id)
 
 
-def get_stolen_time(member_id):
-    stolen_time = get_single_value('last_stolen_datetime', 'gambler_stat', '_id', member_id)
-    return stolen_time
+def get_stolen_id(member_id: int):
+    return get(SqlStatement.GET_LAST_STOLEN_ID, member_id)
+
+
+def get_stolen_time(member_id: int):
+    return get(SqlStatement.GET_LAST_STOLEN_DATETIME, member_id)
 
 
 def get_last_bank_time(member_id):
-    last_bank_time = get_single_value('last_bank_datetime', 'gambler_stat', '_id', member_id)
-    return last_bank_time
+    return get(SqlStatement.GET_LAST_BANK_DATETIME, member_id)
 
 
-def update(list_to_change: list, member_id):
+def update_nickname(member_id: int, new_nickname: str):
+    update(SqlStatement.UPDATE_NICKNAME, new_nickname, member_id)
+
+
+def update_money_amount(member_id: int, money_to_add: int):
+    update(SqlStatement.UPDATE_MONEY, money_to_add, member_id)
+
+
+def update_bank_amount(member_id: int, bank_to_add: int):
+    update(SqlStatement.UPDATE_BANK, bank_to_add, member_id)
+
+
+def update_last_stolen_id(member_id: int, victim_id: int):
+    update(SqlStatement.UPDATE_LAST_STOLEN_ID, victim_id, member_id)
+
+
+def update_last_redeemed(member_id: int, new_redeemed_datetime):
+    update(SqlStatement.UPDATE_LAST_REDEEMED, new_redeemed_datetime, member_id)
+
+
+def update_last_bank_datetime(member_id: int, new_bank_datetime):
+    update(SqlStatement.UPDATE_LAST_BANK_DATETIME, new_bank_datetime, member_id)
+
+
+def update_last_stolen_datetime(member_id: int, new_stolen_datetime):
+    update(SqlStatement.UPDATE_LAST_STOLEN_DATETIME, new_stolen_datetime, member_id)
+
+
+def update_total_gained(member_id: int, new_total_gained: int):
+    update(SqlStatement.UPDATE_TOTAL_GAINED, new_total_gained, member_id)
+
+
+def update_total_lost(member_id: int, new_total_lost: int):
+    update(SqlStatement.UPDATE_TOTAL_LOST, new_total_lost, member_id)
+
+
+def insert_id(member_id: int):
+    insert(SqlStatement.INSERT_ID, (member_id,))
+
+
+def insert_guild(guild_id: int, guild_name: str, guild_creation_datetime):
+    insert(SqlStatement.INSERT_GUILD, (guild_id, guild_name, guild_creation_datetime,))
+
+
+def get_leader(result_limit: int):
+    with DatabaseWrapper() as database:
+        cursor = database.execute(SqlStatement.GET_LEADER, (result_limit,))
+        result = cursor.fetchall()
+        return result
+
+
+def get_row(member_id: int):
+    with DatabaseWrapper() as database:
+        cursor = database.execute(SqlStatement.GET_ROW, (member_id,))
+        result = cursor.fetchone()
+        return result
+
+
+def get(statement, value: Union[str, int]):
+    with DatabaseWrapper() as database:
+        cursor = database.execute(statement, (value,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+
+
+def update(statement: SqlStatement, values, member_id: int):
     # nickname, money_amount, last_stolen_id, last_redeemed, last_stolen_datetime, total_gained, total_lost
     with DatabaseWrapper() as database:
-        values = list(zip(*list_to_change))
-        database.execute(f'''UPDATE gambler_stat SET {values[0]} = {values[1]} WHERE _id = {member_id};''')
+        database.execute(statement, (values, member_id,))
 
 
-def update_money(member, money_to_update, add_wallet=True, banking=False, redeem=False, add_stat=False):
-    wallet_amount = get_money(member.id)
-    bank_amount = get_bank(member.id)
-    total_gained = get_total_gained(member.id)
-    total_lost = get_total_lost(member.id)
-
-    if banking:
-        if add_wallet:
-            wallet_amount = wallet_amount + money_to_update
-            bank_amount = bank_amount - money_to_update
-        else:
-            wallet_amount = wallet_amount - money_to_update
-            bank_amount = bank_amount + money_to_update
-    elif not banking:
-        if add_wallet:
-            total_gained = total_gained + money_to_update
-            wallet_amount = wallet_amount + money_to_update
-        else:
-            total_lost = total_lost + money_to_update
-            wallet_amount = wallet_amount - money_to_update
-            # TODO Dirty hack, implement better validation with discord py testing library.
-            if wallet_amount < 0:
-                wallet_amount = 0
-
-    data_tuple = [('nickname', get_member_str(member)), ('money_amount', wallet_amount),
-                  ('total_gained', total_gained), ('total_lost', total_lost), ('bank_amount', bank_amount)]
-
-    if redeem:
-        data_tuple.append(('last_redeemed', str(datetime.datetime.utcnow())))
-    if banking and not add_wallet:
-        data_tuple.append(('last_bank_datetime', str(datetime.datetime.utcnow())))
-
-    update(data_tuple, member_id=member.id)
+def insert(statement: SqlStatement, values: tuple):
+    with DatabaseWrapper() as database:
+        database.execute(statement, values)
