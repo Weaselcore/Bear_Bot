@@ -1,7 +1,7 @@
 import datetime
 
 from bblib.core.player_database_info import PlayerDatabaseInfo
-from bblib.Util import update, update_money_amount, update_total_gained, update_last_redeemed, update_total_lost, \
+from bblib.Util import update_money_amount, update_total_gained, update_last_redeemed, update_total_lost, \
     update_bank_amount, update_last_bank_datetime
 
 
