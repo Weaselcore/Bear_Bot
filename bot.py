@@ -42,7 +42,8 @@ logger.addHandler(console)
 @bot.event
 async def on_ready():
     global logger, flag_file
-    name, identity = bot.user.name, bot.user.id
+    name: str = bot.user.name
+    identity: int = bot.user.id
     print(f"Logged in as - Name: {name}; ID: {identity}\n\nReady when you are.")
     # This is to see if you're running the correct version of discord.py.
     print("Using version: ", discord.__version__, "\n")
