@@ -7,7 +7,7 @@ import bblib.Embed
 from bblib.Util import get_member_str, get_member_object, message_channel, member_create, fifty, get_money, get_bank, \
     get_last_redeemed, get_total_gained, get_total_lost, get_stolen_id, get_stolen_time, get_last_bank_time, update, \
     update_money
-from DatabaseWrapper import DatabaseWrapper
+from database_wrapper import DatabaseWrapper
 
 create_guild_table = """CREATE TABLE guild(
                             guild_id integer PRIMARY KEY,

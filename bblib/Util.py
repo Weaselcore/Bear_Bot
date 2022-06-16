@@ -4,7 +4,7 @@ from typing import Union
 
 import discord
 
-from DatabaseWrapper import DatabaseWrapper
+from database_wrapper import DatabaseWrapper
 
 
 def get_member_str(member: discord.member) -> str:
