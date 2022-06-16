@@ -3,7 +3,7 @@ mongodb_token.json
 discord.log
 config.json
 *__pycache__
-venv
+.venv
 database/backup/user_data.db
 *.xml
 database/__pycache__*
